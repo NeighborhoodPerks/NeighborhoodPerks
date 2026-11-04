@@ -1,5 +1,12 @@
 # Design prompt — make Neighborhood Perks look designed, not generated
 
+> **Owner decision, 2026-11-04:** this prompt was applied in commit fc0b19d, and the owner preferred
+> the original friendlier look with its graphics. The site went back to that design (illustrated
+> hero with floating cards, colorful icon tiles, illustrated service cards, chips), keeping two
+> things: the original house logo with its condensed lettering, and no location pill above the
+> headline. Don't strip the illustrations, icon tiles or color out again because of the list below.
+> Use it only for small polish that keeps the site just as friendly.
+
 Use this prompt for any visual change to the site.
 
 ---

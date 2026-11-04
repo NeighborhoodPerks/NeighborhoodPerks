@@ -1,29 +1,43 @@
-<!--{"title": "Become a provider", "description": "Join the Neighborhood Perks network of local service pros in Carmel Valley and Torrey Highlands. Get grouped jobs on the same streets, with less driving and no ad spend.", "path": "/providers/"}-->
+<!--{"title": "Become a provider", "description": "Join the Neighborhood Perks network of local home-service pros in Carmel Valley and Torrey Highlands. Get grouped jobs on the same street with less driving and no ad spend.", "path": "/providers/"}-->
 <section class="page-hero">
-  <div class="wrap">
-    <p class="crumb"><a href="/">Home</a> / For pros</p>
-    <h1>More jobs per trip, less time chasing leads</h1>
-    <p class="lede">We group homeowners on the same streets who need the same service, then send that work to pros we trust. If you do good work, we'd like to meet you.</p>
-  </div>
-</section>
-
-<section style="padding-bottom:var(--section)">
-  <div class="wrap points points-3">
-    <div><h3>Jobs close together</h3><p>Several homes in one neighborhood on the same trip means less driving and more paid hours.</p></div>
-    <div><h3>Customers come to you</h3><p>Our neighborhood network brings the demand, so you can spend less on ads and lead sites.</p></div>
-    <div><h3>Booking handled</h3><p>We talk to the homeowners and send you a confirmed schedule.</p></div>
+  <div class="wrap split">
+    <div>
+      <p class="crumb"><a href="/">Home</a> / For pros</p>
+      <span class="eyebrow">For service pros</span>
+      <h1>More jobs per trip. Less time chasing leads.</h1>
+      <p class="lede">Neighborhood Perks groups homeowners on the same streets who need the same service, then sends that work to pros we trust. If you do great work, we'd like to meet you.</p>
+      <div class="btn-row mt-m"><a class="btn btn-primary" href="#apply">Apply now {{icon:arrow}}</a></div>
+    </div>
+    <ul class="why-list reveal" style="grid-template-columns:1fr">
+      <li><span class="icon-badge tint-green">{{icon:route}}</span><div><h3>Stacked, nearby jobs</h3><p>Several homes in one neighborhood in one trip means less windshield time and more billable time.</p></div></li>
+      <li><span class="icon-badge tint-coral">{{icon:users}}</span><div><h3>Customers who come to you</h3><p>We bring the demand from our neighborhood network, so you can spend less on ads and lead sites.</p></div></li>
+      <li><span class="icon-badge tint-sun">{{icon:calendar}}</span><div><h3>Booking handled</h3><p>We coordinate with homeowners and hand you a confirmed schedule.</p></div></li>
+    </ul>
   </div>
 </section>
 
 <section class="section band-paper" id="apply">
-  <div class="wrap form-layout-rev form-layout">
-    <div>
-      <h2>Apply to partner</h2>
-      <p class="lede">Tell us about your business. We'll get in touch to learn more and explain how working together works.</p>
-      <h3 class="mt-l">Who we're looking for</h3>
-      <p class="muted">House and window cleaners, gutter cleaning, landscaping, pool service, pet groomers, auto detailers, mobile mechanics, plumbers, electricians, tutors and babysitters.</p>
+  <div class="wrap split split-form">
+    <div class="reveal">
+      <span class="eyebrow">Apply</span>
+      <h2>Partner with Neighborhood Perks</h2>
+      <p class="lede">Tell us about your business. We'll follow up to learn more and talk through how the partnership works.</p>
+      <div class="card mt-m">
+        <h3>We're especially looking for</h3>
+        <ul class="chips">
+          <li>{{icon:sparkle}} House &amp; window cleaning</li>
+          <li>{{icon:sparkle}} Gutters</li>
+          <li>{{icon:sparkle}} Landscaping</li>
+          <li>{{icon:sparkle}} Pool service</li>
+          <li>{{icon:sparkle}} Pet grooming</li>
+          <li>{{icon:sparkle}} Auto detailing</li>
+          <li>{{icon:sparkle}} Mobile mechanics</li>
+          <li>{{icon:sparkle}} Plumbing &amp; electrical</li>
+          <li>{{icon:sparkle}} Tutoring &amp; babysitting</li>
+        </ul>
+      </div>
     </div>
-    <form class="form-card" name="provider-application" method="POST" action="/thanks/" data-netlify="true" netlify-honeypot="company_website" data-success="Thanks, we've got your application. We'll be in touch soon to learn more about your business.">
+    <form class="form-card reveal" name="provider-application" method="POST" action="/thanks/" data-netlify="true" netlify-honeypot="company_website" data-success="Application received. Thank you! We'll be in touch soon to learn more about your business.">
       <input type="hidden" name="form-name" value="provider-application">
       <p class="hp"><label>Leave this empty <input name="company_website" tabindex="-1" autocomplete="off"></label></p>
       <div class="form-grid">
@@ -39,17 +53,17 @@
           </select>
         </div>
         <div class="field full">
-          <span class="label">Licensed and insured?</span>
+          <span class="label">Licensed &amp; insured?</span>
           <div class="radio-row">
             <label><input type="radio" name="licensed_insured" value="Yes" checked> Yes</label>
             <label><input type="radio" name="licensed_insured" value="In progress"> In progress</label>
-            <label><input type="radio" name="licensed_insured" value="Not required for my service"> Not needed for my work</label>
+            <label><input type="radio" name="licensed_insured" value="Not required for my service"> Not required for my service</label>
           </div>
         </div>
-        <div class="field full"><label for="p-notes">Anything else? <span class="hint">(optional)</span></label><textarea id="p-notes" name="notes" placeholder="Areas you cover, your website or reviews, availability"></textarea></div>
+        <div class="field full"><label for="p-notes">Anything else? <span class="hint">(optional)</span></label><textarea id="p-notes" name="notes" placeholder="Areas you cover, website or reviews, availability…"></textarea></div>
       </div>
       <div class="form-foot">
-        <button class="btn btn-primary" type="submit">Send application</button>
+        <button class="btn btn-primary" type="submit">Apply now {{icon:arrow}}</button>
       </div>
       <div class="form-status" role="status" aria-live="polite"></div>
     </form>

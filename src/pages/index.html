@@ -1,221 +1,251 @@
-<!--{"title": "Neighborhood Perks | Trusted home services at a neighborhood price", "description": "Local home-service pros for Carmel Valley, Torrey Highlands and nearby San Diego neighborhoods. Book together with your neighbors and pay a group rate.", "path": "/"}-->
+<!--{"title": "Neighborhood Perks | Trusted home services at a neighborhood price", "description": "Vetted local home-service pros for Carmel Valley, Torrey Highlands and nearby San Diego neighborhoods. Book together with your neighbors and get group pricing.", "path": "/"}-->
 <section class="hero">
-  <div class="wrap">
-    <h1>Home services at a neighborhood price.</h1>
-    <p class="lede">We find good local pros, then book them for several homes on the same street. They spend less time driving and you pay a group rate. Nobody has to make ten phone calls.</p>
-    <div class="actions">
-      <a class="btn btn-primary" href="/book/">Book a service</a>
-      <a class="text-link" href="/services/">See what we offer</a>
+  <div class="wrap hero-grid">
+    <div>
+      <h1>Home services, at a <em>neighborhood</em> price.</h1>
+      <p class="lede">We vet local pros and book them for your whole street. You get reliable service at a group rate, and you don't have to call around.</p>
+      <div class="btn-row">
+        <a class="btn btn-primary" href="/book/">Book a service {{icon:arrow}}</a>
+        <a class="btn btn-ghost" href="/services/">See what's available</a>
+      </div>
+      <ul class="hero-trust">
+        <li>{{icon:shield}} Vetted local pros</li>
+        <li>{{icon:users}} Group pricing</li>
+        <li>{{icon:clock}} Open 7 days</li>
+      </ul>
     </div>
-    <p class="hero-note">Open every day. Call or text <a href="{{phone_href}}">{{phone}}</a></p>
 
-    <div class="street">
-      <svg viewBox="0 0 1200 360" role="img" aria-label="Illustration of a sunny San Diego street: six houses, two palm trees, a neighbor walking a dog and the Neighborhood Perks van">
+    <div class="hero-art">
+      <svg viewBox="0 0 600 520" role="img" aria-label="Illustration of a sunny San Diego street with homes and a service van">
         <defs>
-          <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfe5ec"/><stop offset="1" stop-color="#f4ede0"/></linearGradient>
+          <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfe5ec"/><stop offset="1" stop-color="#f6efe2"/></linearGradient>
+          <clipPath id="frame"><rect x="0" y="0" width="600" height="520" rx="36"/></clipPath>
         </defs>
-        <rect width="1200" height="360" fill="url(#sky)"/>
-        <circle cx="1010" cy="74" r="42" fill="#f4b942"/>
-        <circle cx="1010" cy="74" r="64" fill="#f4b942" opacity=".16"/>
-        <g fill="#fff" opacity=".85">
-          <path d="M150 74a17 17 0 0 1 32-5 13 13 0 0 1 18 12h-64a12 12 0 0 1 14-7Z"/>
-          <path d="M560 52a14 14 0 0 1 26-4 11 11 0 0 1 15 10h-53a10 10 0 0 1 12-6Z"/>
-          <path d="M820 96a12 12 0 0 1 22-3 9 9 0 0 1 13 8h-45a8 8 0 0 1 10-5Z"/>
-        </g>
-        <path d="M0 214c120-46 250-54 380-30s250 14 380-20 300-38 440-6v122H0Z" fill="#b8d5c1"/>
-        <path d="M0 238c160-30 320-24 470-6s300 10 450-14 220-10 280 0v62H0Z" fill="#92c0a1"/>
+        <g clip-path="url(#frame)">
+          <rect width="600" height="520" fill="url(#sky)"/>
+          <circle cx="470" cy="118" r="54" fill="#f4b942"/>
+          <circle cx="470" cy="118" r="80" fill="#f4b942" opacity=".18"/>
+          <path d="M0 300c70-50 150-70 230-46s140 10 210-26 120-22 160-4v296H0Z" fill="#b8d5c1"/>
+          <path d="M0 340c90-36 170-28 250-8s170 16 240-14 90-12 110-4v206H0Z" fill="#8fbf9f"/>
+          <rect y="400" width="600" height="120" fill="#efe6d4"/>
+          <rect y="430" width="600" height="14" fill="#e2d6be"/>
+          <path d="M0 470h600" stroke="#d6c8ac" stroke-width="3" stroke-dasharray="22 18"/>
 
-        <!-- A -->
-        <rect x="40" y="182" width="150" height="88" fill="#fffaf2"/>
-        <path d="M28 188 115 128l87 60Z" fill="#e0603a"/>
-        <rect x="58" y="202" width="32" height="28" rx="3" fill="#cfe5ec" stroke="#2c6a4b" stroke-width="3"/>
-        <path d="M74 202v28M58 216h32" stroke="#2c6a4b" stroke-width="2"/>
-        <rect x="140" y="214" width="30" height="56" rx="3" fill="#1f4d36"/>
-        <!-- B -->
-        <rect x="222" y="142" width="170" height="128" fill="#fdf1d4"/>
-        <path d="M208 148 307 82l99 66Z" fill="#1f4d36"/>
-        <rect x="242" y="162" width="36" height="30" rx="3" fill="#cfe5ec" stroke="#1f4d36" stroke-width="3"/>
-        <rect x="336" y="162" width="36" height="30" rx="3" fill="#cfe5ec" stroke="#1f4d36" stroke-width="3"/>
-        <rect x="290" y="208" width="34" height="62" rx="3" fill="#e0603a"/>
-        <circle cx="307" cy="118" r="10" fill="#fdf1d4"/>
-        <!-- palm 1 -->
-        <path d="M440 272c4-50 0-96-14-136" fill="none" stroke="#8a6a4a" stroke-width="9" stroke-linecap="round"/>
-        <g fill="#2c6a4b">
-          <path d="M426 138c-24-17-54-15-71 4 26-5 49-4 71-4Z"/><path d="M426 138c-9-29-33-43-57-40 22 10 40 22 57 40Z"/>
-          <path d="M426 138c10-28 38-38 60-31-24 7-43 15-60 31Z"/><path d="M426 138c28-9 53 2 65 22-24-12-44-17-65-22Z"/>
-        </g>
-        <!-- C -->
-        <rect x="480" y="192" width="140" height="78" fill="#fffaf2"/>
-        <path d="M468 198 550 142l82 56Z" fill="#c98a12"/>
-        <rect x="498" y="210" width="32" height="28" rx="3" fill="#cfe5ec" stroke="#8a5a00" stroke-width="3"/>
-        <rect x="570" y="218" width="30" height="52" rx="3" fill="#2c6a4b"/>
-        <!-- D -->
-        <rect x="664" y="150" width="160" height="120" fill="#e3efe6"/>
-        <path d="M650 156 744 94l94 62Z" fill="#c24c28"/>
-        <rect x="684" y="170" width="34" height="30" rx="3" fill="#fffaf2" stroke="#1f4d36" stroke-width="3"/>
-        <rect x="770" y="170" width="34" height="30" rx="3" fill="#fffaf2" stroke="#1f4d36" stroke-width="3"/>
-        <rect x="728" y="214" width="32" height="56" rx="3" fill="#1f4d36"/>
-        <!-- palm 2 -->
-        <path d="M858 272c-2-44 4-84 18-118" fill="none" stroke="#8a6a4a" stroke-width="8" stroke-linecap="round"/>
-        <g fill="#2c6a4b">
-          <path d="M876 156c-20-15-46-14-61 3 22-4 42-3 61-3Z"/><path d="M876 156c-6-25-26-38-48-36 19 9 34 19 48 36Z"/>
-          <path d="M876 156c10-24 34-32 52-26-20 6-37 13-52 26Z"/><path d="M876 156c24-7 45 2 55 19-20-10-38-14-55-19Z"/>
-        </g>
-        <!-- E -->
-        <rect x="900" y="176" width="150" height="94" fill="#fdf1d4"/>
-        <path d="M888 182 975 122l87 60Z" fill="#1f4d36"/>
-        <rect x="918" y="196" width="34" height="30" rx="3" fill="#cfe5ec" stroke="#1f4d36" stroke-width="3"/>
-        <rect x="1000" y="212" width="30" height="58" rx="3" fill="#e0603a"/>
-        <!-- F -->
-        <rect x="1078" y="198" width="122" height="72" fill="#fffaf2"/>
-        <path d="M1066 204 1140 152l74 52Z" fill="#e0603a"/>
-        <rect x="1094" y="214" width="30" height="26" rx="3" fill="#cfe5ec" stroke="#2c6a4b" stroke-width="3"/>
-        <rect x="1150" y="220" width="28" height="50" rx="3" fill="#1f4d36"/>
+          <!-- house 1 -->
+          <g>
+            <rect x="46" y="300" width="138" height="104" fill="#fffaf2"/>
+            <path d="M34 306 115 246l81 60Z" fill="#e0603a"/>
+            <rect x="64" y="324" width="34" height="30" rx="3" fill="#cfe5ec" stroke="#2c6a4b" stroke-width="3"/>
+            <path d="M81 324v30M64 339h34" stroke="#2c6a4b" stroke-width="2"/>
+            <rect x="124" y="340" width="36" height="64" rx="3" fill="#1f4d36"/>
+            <circle cx="153" cy="374" r="2.6" fill="#f4b942"/>
+            <rect x="60" y="390" width="46" height="14" rx="7" fill="#5f9f77"/>
+          </g>
 
-        <g fill="#5f9f77">
-          <circle cx="206" cy="266" r="13"/><circle cx="404" cy="264" r="15"/><circle cx="640" cy="266" r="12"/><circle cx="842" cy="266" r="11"/><circle cx="1062" cy="266" r="13"/><circle cx="18" cy="266" r="11"/>
-        </g>
+          <!-- house 2 -->
+          <g>
+            <rect x="214" y="268" width="150" height="136" fill="#fdf1d4"/>
+            <path d="M200 274 289 206l89 68Z" fill="#1f4d36"/>
+            <rect x="232" y="292" width="40" height="34" rx="3" fill="#cfe5ec" stroke="#1f4d36" stroke-width="3"/>
+            <rect x="306" y="292" width="40" height="34" rx="3" fill="#cfe5ec" stroke="#1f4d36" stroke-width="3"/>
+            <path d="M252 292v34M326 292v34" stroke="#1f4d36" stroke-width="2"/>
+            <rect x="270" y="346" width="38" height="58" rx="3" fill="#e0603a"/>
+            <circle cx="300" cy="376" r="2.6" fill="#fffaf2"/>
+            <rect x="279" y="222" width="20" height="20" rx="10" fill="#fdf1d4"/>
+          </g>
 
-        <!-- sidewalk + road -->
-        <rect y="270" width="1200" height="22" fill="#e9dfcc"/>
-        <rect y="292" width="1200" height="68" fill="#ddd2bb"/>
-        <path d="M0 326h1200" stroke="#f4ede0" stroke-width="3" stroke-dasharray="26 22"/>
+          <!-- palm -->
+          <g>
+            <path d="M412 404c4-60 2-110-12-156" fill="none" stroke="#8a6a4a" stroke-width="10" stroke-linecap="round"/>
+            <g fill="#2c6a4b">
+              <path d="M400 250c-28-20-62-18-82 4 30-6 56-4 82-4Z"/>
+              <path d="M400 250c-10-34-38-50-66-46 26 12 46 26 66 46Z"/>
+              <path d="M400 250c12-32 44-44 70-36-28 8-50 18-70 36Z"/>
+              <path d="M400 250c32-10 62 2 76 26-28-14-52-20-76-26Z"/>
+              <path d="M400 250c-2-30 12-54 30-62-12 22-22 40-30 62Z"/>
+            </g>
+          </g>
 
-        <!-- neighbor walking a dog -->
-        <g>
-          <circle cx="636" cy="226" r="7.5" fill="#1f4d36"/>
-          <path d="M636 236v24l-6 26M636 260l7 26" fill="none" stroke="#1f4d36" stroke-width="6" stroke-linecap="round"/>
-          <path d="M636 242l12 12" stroke="#1f4d36" stroke-width="5" stroke-linecap="round"/>
-          <path d="M648 254c10 6 16 14 24 16" fill="none" stroke="#e0603a" stroke-width="2.4" stroke-linecap="round"/>
-          <rect x="668" y="268" width="26" height="12" rx="6" fill="#f4b942"/>
-          <circle cx="697" cy="265" r="6.5" fill="#f4b942"/>
-          <path d="M699 259l3-5 1 7" fill="#c98a12"/>
-          <path d="M672 279v8M690 279v8" stroke="#c98a12" stroke-width="3.5" stroke-linecap="round"/>
-          <path d="M668 271c-5-1-7-5-5-9" fill="none" stroke="#f4b942" stroke-width="3" stroke-linecap="round"/>
-        </g>
+          <!-- house 3 -->
+          <g>
+            <rect x="452" y="310" width="122" height="94" fill="#fffaf2"/>
+            <path d="M442 316 513 262l71 54Z" fill="#c98a12"/>
+            <rect x="468" y="332" width="32" height="28" rx="3" fill="#cfe5ec" stroke="#8a5a00" stroke-width="3"/>
+            <rect x="520" y="346" width="34" height="58" rx="3" fill="#2c6a4b"/>
+          </g>
 
-        <!-- van -->
-        <g>
-          <rect x="230" y="298" width="200" height="46" rx="12" fill="#fff"/>
-          <path d="M430 308h30c9 0 15 5 19 12l9 15v4a7 7 0 0 1-7 7h-51Z" fill="#fff"/>
-          <path d="M438 314h20c5 0 8 3 11 7l6 10h-37Z" fill="#cfe5ec"/>
-          <rect x="230" y="330" width="258" height="6" fill="#e0603a"/>
-          <circle cx="280" cy="346" r="12" fill="#1b2a21"/><circle cx="280" cy="346" r="4.5" fill="#e9dfcc"/>
-          <circle cx="446" cy="346" r="12" fill="#1b2a21"/><circle cx="446" cy="346" r="4.5" fill="#e9dfcc"/>
-          <g transform="translate(244 306) scale(.03)" fill="#1b2a21"><path d="M1 499H185V250L500 2 814 250V499H998V569H744V284L500 92 256 284V569H1Z"/><path d="M692 82H763V230H692Z"/><path d="M405 266h73v73h-73ZM521 266h73v73h-73ZM405 382h73v73h-73ZM521 382h73v73h-73Z"/></g><text x="282" y="323" font-family="'Bebas Neue', Oswald, sans-serif" font-size="19" letter-spacing=".6" fill="#1b2a21">NEIGHBORHOOD PERKS</text>
+          <!-- fences / shrubs -->
+          <g fill="#5f9f77">
+            <circle cx="200" cy="398" r="14"/><circle cx="380" cy="396" r="16"/><circle cx="440" cy="400" r="11"/><circle cx="30" cy="398" r="12"/>
+          </g>
+
+          <!-- van -->
+          <g>
+            <rect x="96" y="414" width="196" height="64" rx="16" fill="#fff"/>
+            <path d="M292 430h34c10 0 18 6 22 14l10 18v8a8 8 0 0 1-8 8h-58Z" fill="#fff"/>
+            <path d="M300 438h24c6 0 10 3 13 8l7 12h-44Z" fill="#cfe5ec"/>
+            <rect x="96" y="452" width="262" height="8" fill="#e0603a"/>
+            <circle cx="148" cy="480" r="16" fill="#17261d"/><circle cx="148" cy="480" r="6" fill="#efe6d4"/>
+            <circle cx="310" cy="480" r="16" fill="#17261d"/><circle cx="310" cy="480" r="6" fill="#efe6d4"/>
+<g transform="translate(112 426) scale(.04)" fill="#1b2a21"><path d="M1 499H185V250L500 2 814 250V499H998V569H744V284L500 92 256 284V569H1Z"/><path d="M692 82H763V230H692Z"/><path d="M405 266h73v73h-73ZM521 266h73v73h-73ZM405 382h73v73h-73ZM521 382h73v73h-73Z"/></g>
+            <text x="158" y="445" font-family="'Bebas Neue', Oswald, sans-serif" font-size="22" letter-spacing=".6" fill="#1b2a21">NEIGHBORHOOD PERKS</text>
+          </g>
+
+          <!-- clouds -->
+          <g fill="#fff" opacity=".9">
+            <path d="M88 110a20 20 0 0 1 38-6 16 16 0 0 1 22 15H70a14 14 0 0 1 18-9Z"/>
+            <path d="M300 70a16 16 0 0 1 30-5 13 13 0 0 1 18 12h-62a11 11 0 0 1 14-7Z"/>
+          </g>
         </g>
       </svg>
+
+      <div class="hero-card one">
+        <span class="ico tint-green">{{icon:shield}}</span>
+        <span><strong>Vetted local pros</strong>Every provider screened by us</span>
+      </div>
+      <div class="hero-card two">
+        <span class="ico tint-coral">{{icon:users}}</span>
+        <span><strong>Book with neighbors</strong>Better rates, booked together</span>
+      </div>
     </div>
   </div>
 </section>
 
-<section class="section">
-  <div class="wrap define">
-    <div>
-      <p class="define-word">perk</p>
-      <p class="define-meta"><i>noun</i> · /pərk/</p>
-      <p class="define-meaning">Something extra you get for being part of something. Here, it's the better rate you get for being part of your neighborhood.</p>
+<section class="section" id="perk">
+  <div class="wrap">
+    <div class="section-head center reveal">
+      <span class="eyebrow">What's in a perk?</span>
+      <h2>Three words, one simple idea.</h2>
+      <p class="lede">Your neighborhood can get a better deal together than any one house can alone. We put that to work.</p>
     </div>
-    <ul class="parts">
-      <li><strong>Home services</strong><p>We manage a network of local pros: screens and pet care today, and cleaning, yards, pools and more on the way. One number covers all of it.</p></li>
-      <li><strong>Neighborhood</strong><p>Every booking puts you in a neighborhood buying group. When the house next door needs the same thing, you both pay less.</p></li>
-      <li><strong>Perks</strong><p>Reliable service at a group price. The pro does several houses in one trip instead of driving back and forth across town, and you share in the savings.</p></li>
-    </ul>
+    <div class="grid grid-3">
+      <article class="card pillar reveal">
+        <span class="num" aria-hidden="true">01</span>
+        <div class="icon-badge tint-green">{{icon:home}}</div>
+        <div class="word">Home services</div>
+        <p class="muted">We manage a network of local home-service providers who deliver the best value, so you have one place to go for all of them.</p>
+      </article>
+      <article class="card pillar reveal">
+        <span class="num" aria-hidden="true">02</span>
+        <div class="icon-badge tint-sun">{{icon:users}}</div>
+        <div class="word">Neighborhood</div>
+        <p class="muted">Booking through us makes you part of a neighborhood buying group. When neighbors book the same service, everyone benefits.</p>
+      </article>
+      <article class="card pillar reveal">
+        <span class="num" aria-hidden="true">03</span>
+        <div class="icon-badge tint-coral">{{icon:tag}}</div>
+        <div class="word">Perks</div>
+        <p class="muted">Convenient, reliable service at a group price. Pros save on travel by working one street at a time, and you share in the savings.</p>
+      </article>
+    </div>
   </div>
 </section>
 
 <section class="section band-green" id="how-it-works">
   <div class="wrap">
-    <h2>How booking works</h2>
-    <p class="lede">You don't need an account or a login. Fill in a short form, or call or text us.</p>
+    <div class="section-head reveal">
+      <span class="eyebrow">How it works</span>
+      <h2>Book in a minute. We handle the rest.</h2>
+      <p class="lede">No accounts and no searching through review sites. Tell us what you need and we'll match you with a pro we trust.</p>
+    </div>
     <ol class="steps">
-      <li>
+      <li class="reveal">
         <h3>Tell us what you need</h3>
-        <p>Choose a service and a few times that work for you. It takes about a minute.</p>
+        <p>Pick a service and a time that works for you. It takes about a minute, or you can call or text us.</p>
       </li>
-      <li>
+      <li class="reveal">
         <h3>We group your street</h3>
-        <p>We pair you with a pro we've vetted and fit you in with neighbors who need the same job.</p>
+        <p>We match you with a vetted local pro and line up neighbors who need the same service, so the pro's visit costs less for everyone.</p>
       </li>
-      <li>
-        <h3>The pro shows up</h3>
-        <p>They do the work at the group rate. If anything comes up, you call us, not a stranger.</p>
+      <li class="reveal">
+        <h3>Enjoy the perk</h3>
+        <p>Your pro shows up on schedule and does the job right, at the group rate. We stay your point of contact the whole way.</p>
       </li>
     </ol>
+    <div class="btn-row mt-l">
+      <a class="btn btn-light" href="/book/">Book a service {{icon:arrow}}</a>
+    </div>
   </div>
 </section>
 
 <section class="section" id="services">
   <div class="wrap">
-    <h2>Booking now</h2>
-    <p class="lede">We're starting with three jobs that nearly every house on the street needs.</p>
-    <ul class="services">
-      <li class="service">
-        <div class="service-art art-sky">{{icon:art-screen}}</div>
-        <div>
+    <div class="section-head reveal">
+      <span class="eyebrow">Available now</span>
+      <h2>Start with the jobs everyone on your street needs.</h2>
+    </div>
+    <div class="grid grid-3">
+      <article class="card service-card reveal">
+        <div class="service-art tint-sky"><span class="tag tag-live">Booking now</span>{{icon:art-screen}}</div>
+        <div class="service-body">
           <h3>Window re-screening</h3>
-          <p>We replace torn, faded or missing screens with new ones that fit tight. Whole streets often book this together.</p>
+          <p>Torn, faded or missing screens replaced with fresh, tight-fitting ones. It's the classic job a whole street can do at once.</p>
+          <a class="btn btn-dark" href="/book/?service=Window%20re-screening">Book re-screening</a>
         </div>
-        <a class="text-link" href="/book/?service=Window%20re-screening">Book re-screening</a>
-      </li>
-      <li class="service">
-        <div class="service-art art-sun">{{icon:art-walk}}</div>
-        <div>
+      </article>
+      <article class="card service-card reveal">
+        <div class="service-art tint-sun"><span class="tag tag-live">Booking now</span>{{icon:art-walk}}</div>
+        <div class="service-body">
           <h3>Pet walking</h3>
-          <p>Local dog walkers who show up when they said they would, so your dog still gets out on your longest days.</p>
+          <p>Honest, reliable local dog walkers who show up on schedule, so your pup gets out even on your busiest days.</p>
+          <a class="btn btn-dark" href="/book/?service=Pet%20walking">Book a walk</a>
         </div>
-        <a class="text-link" href="/book/?service=Pet%20walking">Book a walk</a>
-      </li>
-      <li class="service">
-        <div class="service-art art-coral">{{icon:art-sit}}</div>
-        <div>
+      </article>
+      <article class="card service-card reveal">
+        <div class="service-art tint-coral"><span class="tag tag-live">Booking now</span>{{icon:art-sit}}</div>
+        <div class="service-body">
           <h3>Pet sitting</h3>
-          <p>Your pets stay home and keep their routine while you're away, looked after by a local sitter.</p>
+          <p>Care for your pets in the comfort of their own home while you're away, from local sitters we know.</p>
+          <a class="btn btn-dark" href="/book/?service=Pet%20sitting">Book a sitter</a>
         </div>
-        <a class="text-link" href="/book/?service=Pet%20sitting">Book a sitter</a>
-      </li>
-    </ul>
+      </article>
+    </div>
   </div>
 </section>
 
 <section class="section band-paper" id="vote">
   <div class="wrap vote">
-    <div>
-      <h2>What should we add next?</h2>
-      <p class="lede">We add a service once enough neighbors ask for it, so the group rate starts on day one. Tick the services you'd book and we'll email you when they're ready.</p>
-      <p class="muted mt-m mb-0">On the list so far:</p>
-      <ul class="soon-list mt-s">
-        <li>House cleaning</li><li>Window cleaning</li><li>Gutter cleaning</li><li>Landscaping</li><li>Pool service</li><li>Pet grooming</li><li>Pet treats</li>
-        <li>Auto detailing</li><li>Mobile maintenance</li><li>Mobile mechanic</li><li>Plumbing</li><li>Electrical</li><li>Tutoring</li><li>Babysitting</li>
+    <div class="reveal">
+      <span class="eyebrow">Coming soon</span>
+      <h2>Help decide what we add next.</h2>
+      <p class="lede">We launch a service once enough neighbors ask for it. That's how we lock in a group rate from day one. Pick the services you'd use and we'll let you know when they go live.</p>
+      <ul class="chips mt-m vote-chips" aria-label="Services coming soon">
+        <li>{{icon:sparkle}} House cleaning</li>
+        <li>{{icon:sparkle}} Window cleaning</li>
+        <li>{{icon:sparkle}} Gutter cleaning</li>
+        <li>{{icon:sparkle}} Landscaping</li>
+        <li>{{icon:sparkle}} Pool service</li>
+        <li>{{icon:sparkle}} Auto detailing</li>
+        <li>{{icon:sparkle}} +8 more</li>
       </ul>
     </div>
-    <form class="form-card" name="service-vote" method="POST" action="/thanks/" data-netlify="true" netlify-honeypot="company_website" data-success="Thanks, your vote is in. We'll email you when those services start in your neighborhood.">
+    <form class="form-card reveal" name="service-vote" method="POST" action="/thanks/" data-netlify="true" netlify-honeypot="company_website" data-success="Thanks! Your vote is in. We'll email you as soon as those services launch in your neighborhood.">
       <input type="hidden" name="form-name" value="service-vote">
       <p class="hp"><label>Leave this empty <input name="company_website" tabindex="-1" autocomplete="off"></label></p>
-      <fieldset class="checkbox-grid">
-        <legend>I'd book…</legend>
-        <label><input type="checkbox" name="services[]" value="House cleaning"> House cleaning</label>
-        <label><input type="checkbox" name="services[]" value="Window cleaning"> Window cleaning</label>
-        <label><input type="checkbox" name="services[]" value="Gutter cleaning"> Gutter cleaning</label>
-        <label><input type="checkbox" name="services[]" value="Landscaping"> Landscaping</label>
-        <label><input type="checkbox" name="services[]" value="Pool service"> Pool service</label>
-        <label><input type="checkbox" name="services[]" value="Pet grooming"> Pet grooming</label>
-        <label><input type="checkbox" name="services[]" value="Pet treats"> Pet treats</label>
-        <label><input type="checkbox" name="services[]" value="Auto detailing"> Auto detailing</label>
-        <label><input type="checkbox" name="services[]" value="Mobile maintenance"> Mobile maintenance</label>
-        <label><input type="checkbox" name="services[]" value="Mobile mechanic"> Mobile mechanic</label>
-        <label><input type="checkbox" name="services[]" value="Plumbing"> Plumbing</label>
-        <label><input type="checkbox" name="services[]" value="Electrical"> Electrical</label>
-        <label><input type="checkbox" name="services[]" value="Tutoring"> Tutoring</label>
-        <label><input type="checkbox" name="services[]" value="Babysitting"> Babysitting</label>
+      <fieldset class="vote-options">
+        <legend class="label" style="font-weight:700;margin-bottom:12px">I'd book…</legend>
+        <label><input type="checkbox" name="services[]" value="House cleaning"><span>House cleaning</span></label>
+        <label><input type="checkbox" name="services[]" value="Window cleaning"><span>Window cleaning</span></label>
+        <label><input type="checkbox" name="services[]" value="Gutter cleaning"><span>Gutter cleaning</span></label>
+        <label><input type="checkbox" name="services[]" value="Landscaping"><span>Landscaping</span></label>
+        <label><input type="checkbox" name="services[]" value="Pool service"><span>Pool service</span></label>
+        <label><input type="checkbox" name="services[]" value="Pet grooming"><span>Pet grooming</span></label>
+        <label><input type="checkbox" name="services[]" value="Pet treats"><span>Pet treats</span></label>
+        <label><input type="checkbox" name="services[]" value="Auto detailing"><span>Auto detailing</span></label>
+        <label><input type="checkbox" name="services[]" value="Mobile maintenance"><span>Mobile maintenance</span></label>
+        <label><input type="checkbox" name="services[]" value="Mobile mechanic"><span>Mobile mechanic</span></label>
+        <label><input type="checkbox" name="services[]" value="Plumbing"><span>Plumbing</span></label>
+        <label><input type="checkbox" name="services[]" value="Electrical"><span>Electrical</span></label>
+        <label><input type="checkbox" name="services[]" value="Tutoring"><span>Tutoring</span></label>
+        <label><input type="checkbox" name="services[]" value="Babysitting"><span>Babysitting</span></label>
       </fieldset>
       <div class="form-grid">
         <div class="field"><label for="v-email">Email</label><input id="v-email" type="email" name="email" autocomplete="email" required></div>
         <div class="field"><label for="v-hood">Neighborhood</label><input id="v-hood" name="neighborhood" placeholder="e.g. Carmel Valley"></div>
       </div>
       <div class="form-foot">
-        <button class="btn btn-primary" type="submit">Send my picks</button>
-        <p>We'll only email you about new services.</p>
+        <button class="btn btn-primary" type="submit">Count my vote</button>
+        <p>No spam. We'll only email you about launches.</p>
       </div>
       <div class="form-status" role="status" aria-live="polite"></div>
     </form>
@@ -223,70 +253,83 @@
 </section>
 
 <section class="section">
-  <div class="wrap split-wide split">
-    <div>
-      <h2>Why neighbors book through us</h2>
-      <p class="muted">Questions before you book? Call or text <a href="{{phone_href}}">{{phone}}</a>.</p>
-    </div>
-    <div class="points">
-      <div><h3>We vet every pro</h3><p>Nobody joins the network until we've reviewed them, and we stay your contact after the job is done.</p></div>
-      <div><h3>You see the price first</h3><p>We confirm the price with you before anyone comes out.</p></div>
-      <div><h3>Times that suit you</h3><p>Mornings, evenings or weekends. We're open seven days a week.</p></div>
-      <div><h3>A local team answers</h3><p>Call, text or email and you'll reach our team, not a call center.</p></div>
-    </div>
-  </div>
-</section>
-
-<section class="section band-coral">
   <div class="wrap split">
-    <div>
-      <h2>Run a service business? Work with us.</h2>
-      <p>We group homeowners who need the same job on the same streets, then send that work to pros we trust. You get more jobs per trip, and we take care of the booking.</p>
-      <a class="btn btn-on-dark mt-s" href="/providers/">Apply to partner</a>
+    <div class="reveal">
+      <span class="eyebrow">Why neighbors use us</span>
+      <h2>One trusted number for everything around the house.</h2>
+      <p class="lede">We're local, we answer the phone, and we only work with pros we'd send to our own homes.</p>
+      <div class="btn-row mt-m">
+        <a class="btn btn-dark" href="/about/">Our story</a>
+        <a class="btn btn-ghost" href="{{phone_href}}">{{icon:phone}} {{phone}}</a>
+      </div>
     </div>
-    <ul class="bullets">
-      <li>Several jobs on one street instead of across town</li>
-      <li>Steady local demand without paying for ads</li>
-      <li>We schedule with the homeowners and send you the list</li>
+    <ul class="why-list reveal">
+      <li><span class="icon-badge tint-green">{{icon:shield}}</span><div><h3>Vetted professionals</h3><p>Every pro is reviewed by us before they join the network, and we stay your point of contact after the job.</p></div></li>
+      <li><span class="icon-badge tint-coral">{{icon:receipt}}</span><div><h3>Transparent pricing</h3><p>You'll know the price up front, before anyone shows up.</p></div></li>
+      <li><span class="icon-badge tint-sun">{{icon:calendar}}</span><div><h3>Flexible scheduling</h3><p>Pick a time that works for you, seven days a week.</p></div></li>
+      <li><span class="icon-badge tint-sky">{{icon:message}}</span><div><h3>A real local contact</h3><p>Call, text or email us. You'll talk to our local team, not a call center.</p></div></li>
     </ul>
   </div>
 </section>
 
+<section class="section-tight">
+  <div class="wrap">
+    <div class="pro-band reveal">
+      <div>
+        <span class="eyebrow" style="color:#fff">For service pros</span>
+        <h2>Fill your calendar, one street at a time.</h2>
+        <p>Join the Neighborhood Perks network and get grouped jobs in Carmel Valley and nearby, with less driving and less marketing.</p>
+        <a class="btn btn-light mt-s" href="/providers/">Apply to partner {{icon:arrow}}</a>
+      </div>
+      <ul class="checks">
+        <li>Grouped jobs on the same street</li>
+        <li>Steady demand from a local network</li>
+        <li>We handle booking and scheduling</li>
+        <li>Grow without spending on ads</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
 <section class="section" id="faq">
-  <div class="wrap split-wide split">
-    <h2>Questions people ask</h2>
-    <div class="faq">
+  <div class="wrap">
+    <div class="section-head center reveal">
+      <span class="eyebrow">Questions</span>
+      <h2>Good to know</h2>
+    </div>
+    <div class="faq reveal">
       <details>
         <summary>How does group pricing work?</summary>
-        <p>A pro's biggest hidden cost is driving between jobs. When several homes in the same neighborhood book the same service, the pro can do them all in one trip, and we pass that saving on to you as a group rate.</p>
+        <p>A pro's biggest hidden cost is driving between jobs. When several homes on the same street or in the same neighborhood book the same service, the pro can do them all in one trip. We pass those savings on to you as a group rate.</p>
       </details>
       <details>
-        <summary>Do my neighbors have to sign up too?</summary>
+        <summary>Do I need my neighbors to sign up too?</summary>
         <p>No. Book on your own and we'll fit you in with other bookings nearby. If you'd like to bring neighbors along, mention them when you book.</p>
       </details>
       <details>
         <summary>Which neighborhoods do you serve?</summary>
-        <p>We're based in Torrey Highlands and work across Carmel Valley and the neighborhoods around it, including Pacific Highlands Ranch, Del Mar Mesa and Torrey Hills. If you're not sure we cover your street, call us.</p>
+        <p>We're based in Torrey Highlands and serve Carmel Valley and the surrounding neighborhoods, including Pacific Highlands Ranch, Del Mar Mesa and Torrey Hills. Not sure if you're covered? Give us a call.</p>
       </details>
       <details>
         <summary>Do I need to create an account?</summary>
         <p>No. Send a booking request and we'll confirm the details with you by phone, text or email.</p>
       </details>
       <details>
-        <summary>When do the new services start?</summary>
-        <p>As soon as enough neighbors ask for them. <a href="#vote">Tick the ones you'd use</a> and we'll let you know when they're ready.</p>
+        <summary>When will the coming-soon services launch?</summary>
+        <p>As soon as enough neighbors ask for them. <a href="#vote">Vote for the services you want</a> and you'll be the first to know.</p>
       </details>
     </div>
   </div>
 </section>
 
-<section class="section band-paper">
-  <div class="wrap">
-    <h2>Need a hand around the house?</h2>
-    <p class="lede">Booking takes about a minute. You can also call or text us at {{phone}}.</p>
-    <div class="actions mt-m">
-      <a class="btn btn-primary" href="/book/">Book a service</a>
-      <a class="text-link" href="/contact/">Ask us a question</a>
+<section class="section band-paper cta-band">
+  <div class="wrap reveal">
+    <span class="eyebrow">Ready when you are</span>
+    <h2>Let's get your home on the list.</h2>
+    <p class="lede">Book a service in about a minute, or call or text us at {{phone}}.</p>
+    <div class="btn-row">
+      <a class="btn btn-primary" href="/book/">Book a service {{icon:arrow}}</a>
+      <a class="btn btn-ghost" href="/contact/">Ask a question</a>
     </div>
   </div>
 </section>

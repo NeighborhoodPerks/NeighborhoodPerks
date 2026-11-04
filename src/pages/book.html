@@ -1,15 +1,16 @@
-<!--{"title": "Book a service", "description": "Request window re-screening, a dog walk or a pet sitter from Neighborhood Perks. We confirm the time and price by phone, text or email.", "path": "/book/"}-->
-<section class="page-hero">
+<!--{"title": "Book a service", "description": "Request a window re-screening, dog walk or pet sitter from Neighborhood Perks. We confirm by phone, text or email, usually the same day.", "path": "/book/"}-->
+<section class="page-hero" style="padding-bottom:0">
   <div class="wrap">
     <p class="crumb"><a href="/">Home</a> / Book</p>
-    <h1>Book a service</h1>
-    <p class="lede">Tell us what you need and when. We'll get back to you to confirm the time and price. No account needed.</p>
+    <span class="eyebrow">Book a service</span>
+    <h1>Tell us what you need. We'll handle the rest.</h1>
+    <p class="lede">Send a request and we'll confirm a time with a vetted local pro. No account needed.</p>
   </div>
 </section>
 
-<section style="padding-bottom:var(--section)">
-  <div class="wrap form-layout">
-    <form class="form-card" name="booking" method="POST" action="/thanks/" data-netlify="true" netlify-honeypot="company_website" data-success="Got it, thank you. We'll be in touch soon to confirm your time. Need it sooner? Call or text (619) 736-3618.">
+<section class="section-tight">
+  <div class="wrap split split-form">
+    <form class="form-card reveal" name="booking" method="POST" action="/thanks/" data-netlify="true" netlify-honeypot="company_website" data-success="Request received! We'll reach out shortly to confirm your time. Need it sooner? Call or text (619) 736-3618.">
       <input type="hidden" name="form-name" value="booking">
       <p class="hp"><label>Leave this empty <input name="company_website" tabindex="-1" autocomplete="off"></label></p>
       <div class="form-grid">
@@ -45,13 +46,13 @@
             <label><input type="radio" name="time_window" value="Morning" checked> Morning</label>
             <label><input type="radio" name="time_window" value="Afternoon"> Afternoon</label>
             <label><input type="radio" name="time_window" value="Evening"> Evening</label>
-            <label><input type="radio" name="time_window" value="Flexible"> Any time</label>
+            <label><input type="radio" name="time_window" value="Flexible"> Flexible</label>
           </div>
         </div>
-        <div class="field full"><label for="b-details">Details <span class="hint">(optional)</span></label><textarea id="b-details" name="details" placeholder="How many screens? Your pet's name and routine? Anything else we should know?"></textarea></div>
-        <div class="field full"><label for="b-neighbors">Booking with neighbors? <span class="hint">(optional)</span></label><input id="b-neighbors" name="neighbors" placeholder="Their names or your street"></div>
+        <div class="field full"><label for="b-details">Details <span class="hint">(optional)</span></label><textarea id="b-details" name="details" placeholder="How many screens? Your pet's name, breed and routine? Anything we should know?"></textarea></div>
+        <div class="field full"><label for="b-neighbors">Booking with neighbors? <span class="hint">(optional)</span></label><input id="b-neighbors" name="neighbors" placeholder="Their names or your street, and we'll group you together"></div>
         <div class="field full">
-          <span class="label">How should we reach you?</span>
+          <span class="label">How should we confirm?</span>
           <div class="radio-row">
             <label><input type="radio" name="contact_pref" value="Text" checked> Text</label>
             <label><input type="radio" name="contact_pref" value="Call"> Call</label>
@@ -60,28 +61,28 @@
         </div>
       </div>
       <div class="form-foot">
-        <button class="btn btn-primary" type="submit">Send request</button>
-        <p>You won't be charged anything until we've confirmed with you.</p>
+        <button class="btn btn-primary" type="submit">Send request {{icon:arrow}}</button>
+        <p>Nothing is charged until we confirm.</p>
       </div>
       <div class="form-status" role="status" aria-live="polite"></div>
     </form>
 
-    <aside>
-      <div class="aside-block">
+    <aside class="stack reveal">
+      <div class="card">
         <h3>What happens next</h3>
-        <ol class="bullets">
-          <li>We match you with a local pro we've vetted.</li>
-          <li>We confirm the time and price with you.</li>
+        <ul class="checks mb-0">
+          <li>We review your request and match you with a vetted local pro.</li>
+          <li>We confirm the time and price with you before anything is booked.</li>
           <li>If neighbors nearby book too, you get the group rate.</li>
-        </ol>
+        </ul>
       </div>
-      <div class="aside-block">
-        <h3>Rather talk to someone?</h3>
-        <dl class="facts">
-          <div><dt>Call or text</dt><dd><a href="{{phone_href}}">{{phone}}</a></dd></div>
-          <div><dt>Email</dt><dd><a href="mailto:{{email}}">{{email}}</a></dd></div>
-          <div><dt>Hours</dt><dd>Mon–Sat 8am–7pm, Sun 8am–5pm</dd></div>
-        </dl>
+      <div class="card">
+        <h3>Prefer to talk?</h3>
+        <ul class="contact-lines">
+          <li><span class="icon-badge tint-green">{{icon:phone}}</span><span><small>Call or text</small><a href="{{phone_href}}">{{phone}}</a></span></li>
+          <li><span class="icon-badge tint-coral">{{icon:mail}}</span><span><small>Email</small><a href="mailto:{{email}}">{{email}}</a></span></li>
+          <li><span class="icon-badge tint-sun">{{icon:clock}}</span><span><small>Hours</small>Mon–Sat 8am–7pm · Sun 8am–5pm</span></li>
+        </ul>
       </div>
     </aside>
   </div>
