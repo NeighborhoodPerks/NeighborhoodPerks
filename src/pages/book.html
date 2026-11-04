@@ -1,0 +1,89 @@
+<!--{"title": "Book a service", "description": "Request a window re-screening, dog walk or pet sitter from Neighborhood Perks. We confirm by phone, text or email, usually the same day.", "path": "/book/"}-->
+<section class="page-hero" style="padding-bottom:0">
+  <div class="wrap">
+    <p class="crumb"><a href="/">Home</a> / Book</p>
+    <span class="eyebrow">Book a service</span>
+    <h1>Tell us what you need. We'll handle the rest.</h1>
+    <p class="lede">Send a request and we'll confirm a time with a vetted local pro. No account needed.</p>
+  </div>
+</section>
+
+<section class="section-tight">
+  <div class="wrap split split-form">
+    <form class="form-card reveal" name="booking" method="POST" action="/thanks/" data-netlify="true" netlify-honeypot="company_website" data-success="Request received! We'll reach out shortly to confirm your time. Need it sooner? Call or text (619) 736-3618.">
+      <input type="hidden" name="form-name" value="booking">
+      <p class="hp"><label>Leave this empty <input name="company_website" tabindex="-1" autocomplete="off"></label></p>
+      <div class="form-grid">
+        <div class="field full">
+          <label for="b-service">Service</label>
+          <select id="b-service" name="service" required>
+            <option value="" disabled selected>Choose a service</option>
+            <option>Window re-screening</option>
+            <option>Pet walking</option>
+            <option>Pet sitting</option>
+            <option>Something else (tell us below)</option>
+          </select>
+        </div>
+        <div class="field"><label for="b-name">Your name</label><input id="b-name" name="name" autocomplete="name" required></div>
+        <div class="field"><label for="b-phone">Phone</label><input id="b-phone" type="tel" name="phone" autocomplete="tel" required></div>
+        <div class="field full"><label for="b-email">Email</label><input id="b-email" type="email" name="email" autocomplete="email" required></div>
+        <div class="field full"><label for="b-address">Street address</label><input id="b-address" name="address" autocomplete="street-address" required></div>
+        <div class="field">
+          <label for="b-hood">Neighborhood</label>
+          <select id="b-hood" name="neighborhood">
+            <option>Carmel Valley</option>
+            <option>Torrey Highlands</option>
+            <option>Pacific Highlands Ranch</option>
+            <option>Del Mar Mesa</option>
+            <option>Torrey Hills</option>
+            <option>Other / not sure</option>
+          </select>
+        </div>
+        <div class="field"><label for="b-date">Preferred date</label><input id="b-date" type="date" name="preferred_date"></div>
+        <div class="field full">
+          <span class="label">Best time</span>
+          <div class="radio-row">
+            <label><input type="radio" name="time_window" value="Morning" checked> Morning</label>
+            <label><input type="radio" name="time_window" value="Afternoon"> Afternoon</label>
+            <label><input type="radio" name="time_window" value="Evening"> Evening</label>
+            <label><input type="radio" name="time_window" value="Flexible"> Flexible</label>
+          </div>
+        </div>
+        <div class="field full"><label for="b-details">Details <span class="hint">(optional)</span></label><textarea id="b-details" name="details" placeholder="How many screens? Your pet's name, breed and routine? Anything we should know?"></textarea></div>
+        <div class="field full"><label for="b-neighbors">Booking with neighbors? <span class="hint">(optional)</span></label><input id="b-neighbors" name="neighbors" placeholder="Their names or your street, and we'll group you together"></div>
+        <div class="field full">
+          <span class="label">How should we confirm?</span>
+          <div class="radio-row">
+            <label><input type="radio" name="contact_pref" value="Text" checked> Text</label>
+            <label><input type="radio" name="contact_pref" value="Call"> Call</label>
+            <label><input type="radio" name="contact_pref" value="Email"> Email</label>
+          </div>
+        </div>
+      </div>
+      <div class="form-foot">
+        <button class="btn btn-primary" type="submit">Send request {{icon:arrow}}</button>
+        <p>Nothing is charged until we confirm.</p>
+      </div>
+      <div class="form-status" role="status" aria-live="polite"></div>
+    </form>
+
+    <aside class="stack reveal">
+      <div class="card">
+        <h3>What happens next</h3>
+        <ul class="checks mb-0">
+          <li>We review your request and match you with a vetted local pro.</li>
+          <li>We confirm the time and price with you before anything is booked.</li>
+          <li>If neighbors nearby book too, you get the group rate.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Prefer to talk?</h3>
+        <ul class="contact-lines">
+          <li><span class="icon-badge tint-green">{{icon:phone}}</span><span><small>Call or text</small><a href="{{phone_href}}">{{phone}}</a></span></li>
+          <li><span class="icon-badge tint-coral">{{icon:mail}}</span><span><small>Email</small><a href="mailto:{{email}}">{{email}}</a></span></li>
+          <li><span class="icon-badge tint-sun">{{icon:clock}}</span><span><small>Hours</small>Mon–Sat 8am–7pm · Sun 8am–5pm</span></li>
+        </ul>
+      </div>
+    </aside>
+  </div>
+</section>

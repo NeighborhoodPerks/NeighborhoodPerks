@@ -1,0 +1,53 @@
+<!--{"title": "Contact", "description": "Call or text Neighborhood Perks at (619) 736-3618 or email NeighborhoodPerks@gmail.com. Based in Torrey Highlands, San Diego. Open 7 days.", "path": "/contact/"}-->
+<section class="page-hero" style="padding-bottom:0">
+  <div class="wrap">
+    <p class="crumb"><a href="/">Home</a> / Contact</p>
+    <span class="eyebrow">Contact</span>
+    <h1>We'd love to hear from you.</h1>
+    <p class="lede">Questions, service requests or feedback. A real person on our local team will get back to you.</p>
+  </div>
+</section>
+
+<section class="section-tight">
+  <div class="wrap split split-form split-form-rev">
+    <div class="stack reveal">
+      <div class="card">
+        <ul class="contact-lines">
+          <li><span class="icon-badge tint-green">{{icon:phone}}</span><span><small>Call or text</small><a href="{{phone_href}}">{{phone}}</a></span></li>
+          <li><span class="icon-badge tint-coral">{{icon:mail}}</span><span><small>Email</small><a href="mailto:{{email}}">{{email}}</a></span></li>
+          <li><span class="icon-badge tint-sun">{{icon:pin}}</span><span><small>Based in</small>Torrey Highlands, San Diego, CA</span></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Hours</h3>
+        <table class="hours">
+          <tr><td>Monday – Saturday</td><td>8:00am – 7:00pm</td></tr>
+          <tr><td>Sunday</td><td>8:00am – 5:00pm</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h3>Where we work</h3>
+        <p class="muted mb-0">Carmel Valley and the surrounding neighborhoods.</p>
+        <ul class="area-list">
+          <li>Carmel Valley</li><li>Torrey Highlands</li><li>Pacific Highlands Ranch</li><li>Del Mar Mesa</li><li>Torrey Hills</li>
+        </ul>
+      </div>
+    </div>
+
+    <form class="form-card reveal" name="contact" method="POST" action="/thanks/" data-netlify="true" netlify-honeypot="company_website" data-success="Message sent. Thanks! We'll get back to you soon.">
+      <input type="hidden" name="form-name" value="contact">
+      <p class="hp"><label>Leave this empty <input name="company_website" tabindex="-1" autocomplete="off"></label></p>
+      <h2 style="font-size:1.8rem">Send a message</h2>
+      <div class="form-grid">
+        <div class="field"><label for="c-name">Name</label><input id="c-name" name="name" autocomplete="name" required></div>
+        <div class="field"><label for="c-email">Email</label><input id="c-email" type="email" name="email" autocomplete="email" required></div>
+        <div class="field full"><label for="c-phone">Phone <span class="hint">(optional)</span></label><input id="c-phone" type="tel" name="phone" autocomplete="tel"></div>
+        <div class="field full"><label for="c-msg">Message</label><textarea id="c-msg" name="message" required></textarea></div>
+      </div>
+      <div class="form-foot">
+        <button class="btn btn-primary" type="submit">Send message {{icon:arrow}}</button>
+      </div>
+      <div class="form-status" role="status" aria-live="polite"></div>
+    </form>
+  </div>
+</section>
