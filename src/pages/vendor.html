@@ -1,0 +1,129 @@
+<!--{"title": "Dashboard", "description": "Neighborhood Perks dashboard for service providers.", "path": "/vendor/", "noindex": true, "app": true, "css": ["/assets/app/app.css"], "js": ["/assets/vendor/fullcalendar-6.1.22.min.js", "/assets/app/api.js", "/assets/app/dashboard.js"]}-->
+<div class="dash" id="dash">
+  <!-- Sign in -->
+  <section class="dash-signin" data-view="signin" hidden>
+    <form class="form-card" data-form="signin" novalidate>
+      <h1 class="bk-title">Provider sign in</h1>
+      <p class="muted">Manage your bookings, hours and time off.</p>
+      <div class="field"><label for="s-email">Email</label><input id="s-email" type="email" name="email" autocomplete="username" required></div>
+      <div class="field mt-s"><label for="s-pass">Password</label><input id="s-pass" type="password" name="password" autocomplete="current-password" required></div>
+      <div class="form-foot"><button class="btn btn-primary" type="submit">Sign in</button></div>
+      <div class="form-status" role="alert"></div>
+      <p class="muted mt-m" style="font-size:.92rem">Forgot your password or new here? Call or text <a href="{{phone_href}}">{{phone}}</a> and we'll send you a sign-in link.</p>
+    </form>
+  </section>
+
+  <!-- App -->
+  <section data-view="app" hidden>
+    <div class="dash-top">
+      <div>
+        <h1 class="dash-hello" data-bind="hello">Hi</h1>
+        <span class="role-pill" data-bind="role"></span>
+      </div>
+      <div class="dash-top-actions">
+        <label class="vendor-pick" data-admin hidden>
+          <span class="sr-only">Show calendar for</span>
+          <select data-bind="vendor-filter"><option value="">All providers</option></select>
+        </label>
+        <button type="button" class="btn btn-ghost btn-sm" data-act="signout">Sign out</button>
+      </div>
+    </div>
+
+    <nav class="tabs" role="tablist">
+      <button type="button" role="tab" data-tab="calendar" aria-selected="true">Calendar</button>
+      <button type="button" role="tab" data-tab="hours">Hours</button>
+      <button type="button" role="tab" data-tab="services">Services</button>
+      <button type="button" role="tab" data-tab="sync">Phone calendar</button>
+      <button type="button" role="tab" data-tab="vendors" data-admin hidden>Providers</button>
+    </nav>
+
+    <div class="toast" data-toast role="status" aria-live="polite" hidden></div>
+
+    <!-- Calendar -->
+    <div class="tab-panel" data-panel="calendar">
+      <div class="cal-help">
+        <span class="legend"><i class="lg-booked"></i>Booked</span>
+        <span class="legend"><i class="lg-done"></i>Completed</span>
+        <span class="legend"><i class="lg-off"></i>Blocked</span>
+        <span class="legend"><i class="lg-cancel"></i>Cancelled</span>
+        <span class="muted cal-tip">Tap a booking for details. Drag to move it. Select empty time to block it off.</span>
+      </div>
+      <div id="fc" class="fc-wrap"></div>
+    </div>
+
+    <!-- Hours -->
+    <div class="tab-panel" data-panel="hours" hidden>
+      <div class="panel-card">
+        <h2>Weekly hours</h2>
+        <p class="muted">Customers can only book inside these hours. Use time off on the calendar for one-off changes.</p>
+        <div class="hours-grid" data-bind="hours"></div>
+        <h3 class="mt-m">Booking rules</h3>
+        <div class="form-grid rules-grid">
+          <div class="field"><label for="h-notice">Shortest notice</label>
+            <select id="h-notice" name="min_notice_min">
+              <option value="0">Any time</option><option value="60">1 hour</option><option value="120">2 hours</option><option value="240">4 hours</option>
+              <option value="720">12 hours</option><option value="1440">1 day</option><option value="2880">2 days</option><option value="10080">1 week</option>
+            </select></div>
+          <div class="field"><label for="h-window">How far ahead</label>
+            <select id="h-window" name="max_days_ahead">
+              <option value="14">2 weeks</option><option value="30">1 month</option><option value="60">2 months</option><option value="90">3 months</option><option value="180">6 months</option>
+            </select></div>
+          <div class="field"><label for="h-step">Start times every</label>
+            <select id="h-step" name="slot_step_min"><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="60">hour</option></select></div>
+        </div>
+        <div class="form-foot"><button type="button" class="btn btn-primary" data-act="save-hours">Save hours</button></div>
+      </div>
+    </div>
+
+    <!-- Services -->
+    <div class="tab-panel" data-panel="services" hidden>
+      <div class="panel-card">
+        <h2>Your services</h2>
+        <p class="muted">How long each job takes, and how much travel or cleanup time you need after it before the next booking.</p>
+        <div data-bind="services"></div>
+      </div>
+    </div>
+
+    <!-- Phone calendar sync -->
+    <div class="tab-panel" data-panel="sync" hidden>
+      <div class="panel-card">
+        <h2>See bookings in your phone's calendar</h2>
+        <p class="muted">Subscribe once and new bookings show up in Google Calendar, Apple Calendar or Outlook on their own. Calendar apps check for changes every few hours, so we also email you each new booking straight away.</p>
+        <div class="copy-row"><input readonly data-bind="ics-url" aria-label="Calendar link"><button type="button" class="btn btn-dark btn-sm" data-act="copy-ics">Copy</button></div>
+        <details class="mt-m"><summary><strong>iPhone (Apple Calendar)</strong></summary><p>Settings → Calendar → Accounts → Add Account → Other → Add Subscribed Calendar. Paste the link.</p></details>
+        <details><summary><strong>Google Calendar</strong></summary><p>On a computer: calendar.google.com → Other calendars → + → From URL. Paste the link. It then appears on your phone too.</p></details>
+        <details><summary><strong>Outlook</strong></summary><p>Add calendar → Subscribe from web. Paste the link.</p></details>
+        <p class="muted mt-m">Keep this link private: it shows your customers' names and addresses. If it gets shared by mistake, <button type="button" class="linklike" data-act="rotate-ics">make a new link</button> and the old one stops working.</p>
+      </div>
+    </div>
+
+    <!-- Admin: providers -->
+    <div class="tab-panel" data-panel="vendors" hidden>
+      <div class="panel-card">
+        <h2>Providers</h2>
+        <div data-bind="vendors"></div>
+      </div>
+      <div class="panel-card">
+        <h2>Add a provider</h2>
+        <form data-form="add-vendor" novalidate>
+          <div class="form-grid">
+            <div class="field"><label for="v-name">Name</label><input id="v-name" name="name" required></div>
+            <div class="field"><label for="v-biz">Business name <span class="hint">(optional)</span></label><input id="v-biz" name="business_name"></div>
+            <div class="field"><label for="v-email">Email</label><input id="v-email" name="email" type="email" required></div>
+            <div class="field"><label for="v-phone">Phone</label><input id="v-phone" name="phone" type="tel"></div>
+          </div>
+          <h3 class="mt-m">Services they offer</h3>
+          <div data-bind="new-vendor-services"></div>
+          <div class="form-foot"><button class="btn btn-primary" type="submit">Add provider</button></div>
+          <div class="form-status" role="alert"></div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- Booking detail / confirm dialogs -->
+  <dialog class="sheet" data-sheet>
+    <form method="dialog" class="sheet-close"><button aria-label="Close">×</button></form>
+    <div data-bind="sheet"></div>
+  </dialog>
+</div>

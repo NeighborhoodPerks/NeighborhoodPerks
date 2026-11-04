@@ -1,0 +1,15 @@
+<!--{"title": "Set your password", "description": "Finish setting up your Neighborhood Perks account.", "path": "/vendor/invite/", "noindex": true, "app": true, "css": ["/assets/app/app.css"], "js": ["/assets/app/api.js", "/assets/app/invite.js"]}-->
+<div class="dash">
+  <section class="dash-signin">
+    <form class="form-card" id="invite" novalidate>
+      <h1 class="bk-title">Set your password</h1>
+      <p class="muted" data-bind="who">Checking your link…</p>
+      <div data-fields hidden>
+        <div class="field"><label for="i-pass">New password <span class="hint">(at least 10 characters)</span></label><input id="i-pass" type="password" autocomplete="new-password" minlength="10" required></div>
+        <div class="field mt-s"><label for="i-pass2">Type it again</label><input id="i-pass2" type="password" autocomplete="new-password" required></div>
+        <div class="form-foot"><button class="btn btn-primary" type="submit">Save and sign in</button></div>
+      </div>
+      <div class="form-status" role="alert"></div>
+    </form>
+  </section>
+</div>

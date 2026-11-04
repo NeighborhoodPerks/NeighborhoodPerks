@@ -1,6 +1,12 @@
 [build]
-  command = "node build.js"
+  command = "npm run build"
   publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[functions]
+  node_bundler = "esbuild"
 
 # Old GoDaddy site's account/booking pages
 [[redirects]]
@@ -13,6 +19,16 @@
   to = "/"
   status = 301
 
+[[redirects]]
+  from = "/admin"
+  to = "/vendor/"
+  status = 301
+
+[[redirects]]
+  from = "/admin/*"
+  to = "/vendor/"
+  status = 301
+
 [[headers]]
   for = "/*"
   [headers.values]
@@ -21,7 +37,19 @@
     X-Frame-Options = "SAMEORIGIN"
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
 
+# Private pages: keep them out of search, and never leak their secret links in a Referer header
+[[headers]]
+  for = "/booking/*"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+    Referrer-Policy = "no-referrer"
+[[headers]]
+  for = "/vendor/*"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+    Referrer-Policy = "no-referrer"
+
 [[headers]]
   for = "/assets/*"
   [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
+    Cache-Control = "public, max-age=604800"

@@ -1,0 +1,67 @@
+<!--{"title": "Your booking", "description": "See, move or cancel your Neighborhood Perks booking.", "path": "/booking/", "noindex": true, "css": ["/assets/app/app.css"], "js": ["/assets/app/api.js", "/assets/app/manage.js"]}-->
+<section class="page-hero" style="padding-bottom:0">
+  <div class="wrap">
+    <span class="eyebrow">Your booking</span>
+    <h1 data-bind="heading">Your booking</h1>
+  </div>
+</section>
+
+<section class="section-tight">
+  <div class="wrap split split-form">
+    <div class="booker card" id="manage" aria-live="polite">
+      <div data-view="loading"><p class="muted">Loading your booking…</p></div>
+
+      <div data-view="missing" hidden>
+        <h2 class="bk-title">We couldn't find that booking</h2>
+        <p>The link may be incomplete. Check the link in your confirmation email, or call or text us at <a href="{{phone_href}}">{{phone}}</a>.</p>
+      </div>
+
+      <div data-view="booking" hidden>
+        <span class="status-pill" data-bind="status"></span>
+        <div class="bk-summary big" data-bind="summary"></div>
+        <div class="btn-row" data-bind="actions">
+          <button type="button" class="btn btn-dark" data-act="reschedule">Change time</button>
+          <button type="button" class="btn btn-ghost" data-act="cancel">Cancel booking</button>
+        </div>
+
+        <div class="confirm-box" data-box="cancel" hidden>
+          <p><strong>Cancel this booking?</strong> Your pro will be told right away.</p>
+          <div class="field"><label for="c-reason">Reason <span class="hint">(optional)</span></label><input id="c-reason" maxlength="500"></div>
+          <div class="btn-row mt-s">
+            <button type="button" class="btn btn-primary" data-act="cancel-yes">Yes, cancel it</button>
+            <button type="button" class="btn btn-ghost" data-act="cancel-no">Keep my booking</button>
+          </div>
+        </div>
+
+        <div data-box="reschedule" hidden>
+          <h2 class="bk-title mt-m">Pick a new time</h2>
+          <div class="cal" data-cal>
+            <div class="cal-head">
+              <button type="button" class="cal-nav" data-cal-prev aria-label="Previous month">‹</button>
+              <strong data-cal-label></strong>
+              <button type="button" class="cal-nav" data-cal-next aria-label="Next month">›</button>
+            </div>
+            <div class="cal-grid" data-cal-grid role="grid"></div>
+          </div>
+          <div class="slots" data-slots><p class="muted">Pick a day to see open times.</p></div>
+          <p class="tz-note">Times are San Diego time.</p>
+        </div>
+        <div class="form-status" role="alert"></div>
+      </div>
+    </div>
+
+    <aside class="stack">
+      <div class="card">
+        <h3>Need help?</h3>
+        <ul class="contact-lines">
+          <li><span class="icon-badge tint-green">{{icon:phone}}</span><span><small>Call or text</small><a href="{{phone_href}}">{{phone}}</a></span></li>
+          <li><span class="icon-badge tint-coral">{{icon:mail}}</span><span><small>Email</small><a href="mailto:{{email}}">{{email}}</a></span></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Keep this link private</h3>
+        <p class="muted mb-0">Anyone with this page's link can change your booking, so only share it with people in your household.</p>
+      </div>
+    </aside>
+  </div>
+</section>

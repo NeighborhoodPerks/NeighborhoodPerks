@@ -1,78 +1,97 @@
-<!--{"title": "Book a service", "description": "Request a window re-screening, dog walk or pet sitter from Neighborhood Perks. We confirm by phone, text or email, usually the same day.", "path": "/book/"}-->
+<!--{"title": "Book a service", "description": "Book window re-screening, a dog walk or a pet sitter with Neighborhood Perks. Pick a real open time and you're confirmed on the spot.", "path": "/book/", "css": ["/assets/app/app.css"], "js": ["/assets/app/api.js", "/assets/app/booking.js"]}-->
 <section class="page-hero" style="padding-bottom:0">
   <div class="wrap">
     <p class="crumb"><a href="/">Home</a> / Book</p>
     <span class="eyebrow">Book a service</span>
-    <h1>Tell us what you need. We'll handle the rest.</h1>
-    <p class="lede">Send a request and we'll confirm a time with a vetted local pro. No account needed.</p>
+    <h1>Pick a time. You're booked.</h1>
+    <p class="lede">Choose a service, then a time that works for you. You're confirmed right away with a vetted local pro. No account needed.</p>
   </div>
 </section>
 
 <section class="section-tight">
   <div class="wrap split split-form">
-    <form class="form-card reveal" name="booking" method="POST" action="/thanks/" data-netlify="true" netlify-honeypot="company_website" data-success="Request received! We'll reach out shortly to confirm your time. Need it sooner? Call or text (619) 736-3618.">
-      <input type="hidden" name="form-name" value="booking">
-      <p class="hp"><label>Leave this empty <input name="company_website" tabindex="-1" autocomplete="off"></label></p>
-      <div class="form-grid">
-        <div class="field full">
-          <label for="b-service">Service</label>
-          <select id="b-service" name="service" required>
-            <option value="" disabled selected>Choose a service</option>
-            <option>Window re-screening</option>
-            <option>Pet walking</option>
-            <option>Pet sitting</option>
-            <option>Something else (tell us below)</option>
-          </select>
+    <div class="booker card reveal" id="booker" aria-live="polite">
+      <ol class="steps-bar" aria-label="Booking steps">
+        <li data-step="service" class="is-current">Service</li>
+        <li data-step="time">Time</li>
+        <li data-step="details">Your details</li>
+        <li data-step="done">Done</li>
+      </ol>
+
+      <!-- 1. Service -->
+      <div class="bk-step" data-step="service">
+        <h2 class="bk-title">What do you need?</h2>
+        <div class="svc-grid" role="radiogroup" aria-label="Service">
+          <button type="button" class="svc" data-slug="window-rescreening"><span class="svc-art tint-sky">{{icon:art-screen}}</span><span class="svc-name">Window re-screening</span><span class="svc-meta"></span></button>
+          <button type="button" class="svc" data-slug="pet-walking"><span class="svc-art tint-sun">{{icon:art-walk}}</span><span class="svc-name">Pet walking</span><span class="svc-meta"></span></button>
+          <button type="button" class="svc" data-slug="pet-sitting"><span class="svc-art tint-coral">{{icon:art-sit}}</span><span class="svc-name">Pet sitting</span><span class="svc-meta"></span></button>
         </div>
-        <div class="field"><label for="b-name">Your name</label><input id="b-name" name="name" autocomplete="name" required></div>
-        <div class="field"><label for="b-phone">Phone</label><input id="b-phone" type="tel" name="phone" autocomplete="tel" required></div>
-        <div class="field full"><label for="b-email">Email</label><input id="b-email" type="email" name="email" autocomplete="email" required></div>
-        <div class="field full"><label for="b-address">Street address</label><input id="b-address" name="address" autocomplete="street-address" required></div>
-        <div class="field">
-          <label for="b-hood">Neighborhood</label>
-          <select id="b-hood" name="neighborhood">
-            <option>Carmel Valley</option>
-            <option>Torrey Highlands</option>
-            <option>Pacific Highlands Ranch</option>
-            <option>Del Mar Mesa</option>
-            <option>Torrey Hills</option>
-            <option>Other / not sure</option>
-          </select>
-        </div>
-        <div class="field"><label for="b-date">Preferred date</label><input id="b-date" type="date" name="preferred_date"></div>
-        <div class="field full">
-          <span class="label">Best time</span>
-          <div class="radio-row">
-            <label><input type="radio" name="time_window" value="Morning" checked> Morning</label>
-            <label><input type="radio" name="time_window" value="Afternoon"> Afternoon</label>
-            <label><input type="radio" name="time_window" value="Evening"> Evening</label>
-            <label><input type="radio" name="time_window" value="Flexible"> Flexible</label>
-          </div>
-        </div>
-        <div class="field full"><label for="b-details">Details <span class="hint">(optional)</span></label><textarea id="b-details" name="details" placeholder="How many screens? Your pet's name, breed and routine? Anything we should know?"></textarea></div>
-        <div class="field full"><label for="b-neighbors">Booking with neighbors? <span class="hint">(optional)</span></label><input id="b-neighbors" name="neighbors" placeholder="Their names or your street, and we'll group you together"></div>
-        <div class="field full">
-          <span class="label">How should we confirm?</span>
-          <div class="radio-row">
-            <label><input type="radio" name="contact_pref" value="Text" checked> Text</label>
-            <label><input type="radio" name="contact_pref" value="Call"> Call</label>
-            <label><input type="radio" name="contact_pref" value="Email"> Email</label>
-          </div>
-        </div>
+        <p class="bk-alt">Need something else? <a href="#request" data-show-request>Send us a request</a> and we'll find a pro.</p>
       </div>
-      <div class="form-foot">
-        <button class="btn btn-primary" type="submit">Send request {{icon:arrow}}</button>
-        <p>Nothing is charged until we confirm.</p>
+
+      <!-- 2. Date + time -->
+      <div class="bk-step" data-step="time" hidden>
+        <button type="button" class="bk-back" data-go="service">← Change service</button>
+        <h2 class="bk-title">When works for you? <span class="bk-sub" data-bind="service-name"></span></h2>
+        <div class="cal" data-cal>
+          <div class="cal-head">
+            <button type="button" class="cal-nav" data-cal-prev aria-label="Previous month">‹</button>
+            <strong data-cal-label></strong>
+            <button type="button" class="cal-nav" data-cal-next aria-label="Next month">›</button>
+          </div>
+          <div class="cal-grid" data-cal-grid role="grid"></div>
+        </div>
+        <div class="slots" data-slots>
+          <p class="muted">Pick a day to see open times.</p>
+        </div>
+        <p class="tz-note">Times are San Diego time.</p>
       </div>
-      <div class="form-status" role="status" aria-live="polite"></div>
-    </form>
+
+      <!-- 3. Details -->
+      <form class="bk-step" data-step="details" hidden novalidate>
+        <button type="button" class="bk-back" data-go="time">← Change time</button>
+        <h2 class="bk-title">Almost done</h2>
+        <div class="bk-summary" data-bind="summary"></div>
+        <p class="hp"><label>Leave this empty <input name="website" tabindex="-1" autocomplete="off"></label></p>
+        <div class="form-grid">
+          <div class="field"><label for="d-name">Your name</label><input id="d-name" name="name" autocomplete="name" required maxlength="120"></div>
+          <div class="field"><label for="d-phone">Mobile phone</label><input id="d-phone" type="tel" name="phone" autocomplete="tel" required maxlength="40"></div>
+          <div class="field full"><label for="d-email">Email <span class="hint">(your confirmation goes here)</span></label><input id="d-email" type="email" name="email" autocomplete="email" required maxlength="254"></div>
+          <div class="field full"><label for="d-address">Street address</label><input id="d-address" name="address" autocomplete="street-address" required maxlength="240"></div>
+          <div class="field full">
+            <label for="d-hood">Neighborhood</label>
+            <select id="d-hood" name="neighborhood">
+              <option>Carmel Valley</option><option>Torrey Highlands</option><option>Pacific Highlands Ranch</option>
+              <option>Del Mar Mesa</option><option>Torrey Hills</option><option>Other / not sure</option>
+            </select>
+          </div>
+          <div class="field full"><label for="d-notes">Anything we should know? <span class="hint">(optional)</span></label><textarea id="d-notes" name="notes" maxlength="2000" placeholder="How many screens? Your pet's name and routine? Gate code? Neighbors booking too?"></textarea></div>
+        </div>
+        <div class="form-foot">
+          <button class="btn btn-primary" type="submit">Confirm booking {{icon:arrow}}</button>
+          <p>Nothing is charged online.</p>
+        </div>
+        <div class="form-status" role="alert"></div>
+      </form>
+
+      <!-- 4. Done -->
+      <div class="bk-step" data-step="done" hidden>
+        <div class="done-badge">{{icon:check}}</div>
+        <h2 class="bk-title">You're booked!</h2>
+        <div class="bk-summary" data-bind="confirmation"></div>
+        <p>We've emailed your confirmation. Save this link to see, move or cancel your booking any time:</p>
+        <p class="manage-link"><a data-bind="manage-link" href="#"></a></p>
+        <div class="btn-row"><a class="btn btn-dark" data-bind="manage-btn" href="#">View my booking</a><a class="btn btn-ghost" href="/">Back to home</a></div>
+      </div>
+    </div>
 
     <aside class="stack reveal">
       <div class="card">
-        <h3>What happens next</h3>
+        <h3>How it works</h3>
         <ul class="checks mb-0">
-          <li>We review your request and match you with a vetted local pro.</li>
-          <li>We confirm the time and price with you before anything is booked.</li>
+          <li>You see real open times from vetted local pros.</li>
+          <li>Pick one and you're confirmed right away.</li>
+          <li>Move or cancel any time with your private link.</li>
           <li>If neighbors nearby book too, you get the group rate.</li>
         </ul>
       </div>
@@ -85,5 +104,29 @@
         </ul>
       </div>
     </aside>
+  </div>
+</section>
+
+<section class="section-tight" id="request" hidden data-request>
+  <div class="wrap">
+    <form class="form-card" name="booking" method="POST" action="/thanks/" data-netlify="true" netlify-honeypot="company_website" data-success="Request received! We'll reach out shortly to set up a time. Need it sooner? Call or text (619) 736-3618.">
+      <input type="hidden" name="form-name" value="booking">
+      <p class="hp"><label>Leave this empty <input name="company_website" tabindex="-1" autocomplete="off"></label></p>
+      <h2 style="font-size:1.7rem">Send us a request</h2>
+      <p class="muted" data-request-reason>Tell us what you need and we'll set it up with you by phone, text or email.</p>
+      <div class="form-grid">
+        <div class="field full"><label for="b-service">What do you need?</label><input id="b-service" name="service" required placeholder="e.g. Gutter cleaning"></div>
+        <div class="field"><label for="b-name">Your name</label><input id="b-name" name="name" autocomplete="name" required></div>
+        <div class="field"><label for="b-phone">Phone</label><input id="b-phone" type="tel" name="phone" autocomplete="tel" required></div>
+        <div class="field full"><label for="b-email">Email</label><input id="b-email" type="email" name="email" autocomplete="email" required></div>
+        <div class="field full"><label for="b-address">Street address</label><input id="b-address" name="address" autocomplete="street-address"></div>
+        <div class="field full"><label for="b-details">Details <span class="hint">(optional)</span></label><textarea id="b-details" name="details" placeholder="When works for you, and anything we should know"></textarea></div>
+      </div>
+      <div class="form-foot">
+        <button class="btn btn-primary" type="submit">Send request {{icon:arrow}}</button>
+        <p>We'll get back to you to confirm.</p>
+      </div>
+      <div class="form-status" role="status" aria-live="polite"></div>
+    </form>
   </div>
 </section>

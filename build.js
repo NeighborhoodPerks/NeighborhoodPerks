@@ -151,16 +151,16 @@ function page(meta, body) {
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Figtree:wght@400..800&family=Fraunces:ital,opsz,SOFT,wght@0,9..144,0..100,400..700;1,9..144,0..100,400..700&display=swap">
-<link rel="stylesheet" href="/assets/styles.css?v=${VERSION}">${ld}
+<link rel="stylesheet" href="/assets/styles.css?v=${VERSION}">${(meta.css || []).map((c) => `\n<link rel="stylesheet" href="${c}?v=${VERSION}">`).join("")}${ld}
 </head>
-<body class="has-mobile-bar">
+<body class="${meta.app ? "app-page" : "has-mobile-bar"}">
 <a class="sr-only" href="#main">Skip to content</a>
 ${header(meta.nav || meta.path)}
 <main id="main">
 ${body}
 </main>
-${footer()}
-<script src="/assets/site.js?v=${VERSION}" defer></script>
+${meta.app ? "" : footer()}
+<script src="/assets/site.js?v=${VERSION}" defer></script>${(meta.js || []).map((j) => `\n<script src="${j}${j.startsWith("/assets/vendor/") ? "" : `?v=${VERSION}`}" defer></script>`).join("")}
 </body>
 </html>
 `;
@@ -182,11 +182,15 @@ const crypto = require("crypto");
 const VERSION = crypto.createHash("sha1")
   .update(fs.readFileSync(path.join(ROOT, "assets/styles.css")))
   .update(fs.readFileSync(path.join(ROOT, "assets/site.js")))
+  .update(fs.readdirSync(path.join(ROOT, "assets/app")).sort().map((f) => fs.readFileSync(path.join(ROOT, "assets/app", f), "utf8")).join(""))
   .digest("hex").slice(0, 8);
 
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(OUT, { recursive: true });
 fs.cpSync(path.join(ROOT, "assets"), path.join(OUT, "assets"), { recursive: true });
+// Third-party browser code we serve ourselves (no CDN dependency for the dashboard)
+fs.mkdirSync(path.join(OUT, "assets/vendor"), { recursive: true });
+fs.copyFileSync(path.join(ROOT, "node_modules/fullcalendar/index.global.min.js"), path.join(OUT, "assets/vendor/fullcalendar-6.1.22.min.js"));
 
 const urls = [];
 for (const file of fs.readdirSync(path.join(SRC, "pages")).sort()) {

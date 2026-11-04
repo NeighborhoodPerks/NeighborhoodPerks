@@ -1,0 +1,20 @@
+{
+  "name": "neighborhoodperks",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node scripts/migrate.mjs && node build.js",
+    "dev": "node build.js && node scripts/dev.mjs",
+    "test": "node --test \"test/*.test.mjs\""
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "1.2.0",
+    "fullcalendar": "^6.1.22",
+    "luxon": "3.7.2"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.15"
+  }
+}
