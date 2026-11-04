@@ -77,8 +77,11 @@ p { margin: 0 0 1em; }
 .header-inner { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 74px; }
 .brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); }
 .brand:hover { color: var(--ink); }
-.brand-mark { width: 38px; height: 38px; flex: none; }
-.brand-name { font-family: var(--font-display); font-weight: 650; font-size: 1.25rem; letter-spacing: -.02em; line-height: 1; }
+.brand-mark { width: 66px; height: auto; flex: none; }
+.brand-name { display: flex; flex-direction: column; font-family: "Bebas Neue", "Oswald", "Arial Narrow", sans-serif; font-weight: 400; font-size: 1.52rem; line-height: .9; letter-spacing: .04em; text-transform: uppercase; padding-top: 2px; }
+.brand-stacked { flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.brand-stacked .brand-mark { width: 104px; }
+.brand-stacked .brand-name { align-items: center; font-size: 1.5rem; line-height: .95; letter-spacing: .06em; }
 .nav { display: flex; align-items: center; gap: 26px; }
 .nav a { text-decoration: none; color: var(--ink-soft); font-weight: 600; font-size: .98rem; padding-block: 6px; }
 .nav a:hover { color: var(--ink); }
@@ -96,6 +99,7 @@ p { margin: 0 0 1em; }
 .menu-open .menu-toggle .bars::after { transform: translateY(-6px) rotate(-45deg); }
 .nav .nav-phone { display: none; }
 @media (max-width: 1040px) { .header-phone { display: none; } }
+@media (max-width: 400px) { .brand-mark { width: 56px; } .brand-name { font-size: 1.34rem; } }
 @media (max-width: 880px) {
   .menu-toggle { display: inline-flex; }
   .nav { position: absolute; left: 0; right: 0; top: 100%; flex-direction: column; align-items: stretch; gap: 0; padding: 4px var(--gutter) 16px; background: var(--paper); border-bottom: 1px solid var(--rule); }

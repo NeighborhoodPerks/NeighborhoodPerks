@@ -3,7 +3,8 @@ const line = (d) =>
   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 
 module.exports = {
-  mark: `<svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="12" fill="#1f4d36"/><path d="M9 19.5 20 10l11 9.5" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 17.5V30h15V17.5" fill="none" stroke="#fff" stroke-width="2.6" stroke-linejoin="round"/><path d="M20 27.2s-4.2-2.5-4.2-5.4a2.1 2.1 0 0 1 4.2-.6 2.1 2.1 0 0 1 4.2.6c0 2.9-4.2 5.4-4.2 5.4Z" fill="#e0603a"/><circle cx="31.5" cy="9" r="3" fill="#f4b942"/></svg>`,
+  // House from the original Neighborhood Perks logo (redrawn from brand/original-logo.jpg)
+  mark: `<svg class="brand-mark" viewBox="0 0 1000 570" fill="currentColor" aria-hidden="true"><path d="M1 499H185V250L500 2 814 250V499H998V569H744V284L500 92 256 284V569H1Z"/><path d="M692 82H763V230H692Z"/><path d="M405 266h73v73h-73ZM521 266h73v73h-73ZM405 382h73v73h-73ZM521 382h73v73h-73Z"/></svg>`,
 
   check: line('<path d="M20 6 9 17l-5-5"/>'),
   shield: line('<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/>'),

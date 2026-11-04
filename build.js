@@ -41,7 +41,7 @@ function header(current) {
   <div class="wrap header-inner">
     <a class="brand" href="/" aria-label="${BIZ.name} home">
       ${icons.mark}
-      <span class="brand-name">Neighborhood <span>Perks</span></span>
+      <span class="brand-name"><span>Neighborhood</span><span>Perks</span></span>
     </a>
     <nav class="nav" id="site-nav" aria-label="Main">
         ${links}
@@ -61,7 +61,7 @@ function footer() {
   <div class="wrap">
     <div class="footer-grid">
       <div>
-        <a class="brand" href="/">${icons.mark}<span class="brand-name">Neighborhood <span>Perks</span></span></a>
+        <a class="brand brand-stacked" href="/" aria-label="${BIZ.name} home">${icons.mark}<span class="brand-name"><span>Neighborhood</span><span>Perks</span></span></a>
         <p>Local pros for Carmel Valley, Torrey Highlands and the neighborhoods next door, booked together so everyone pays less.</p>
         <div class="footer-social">
           <a href="${BIZ.facebook}" rel="noopener" target="_blank">Facebook</a>
@@ -147,7 +147,7 @@ function page(meta, body) {
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400..800&family=Fraunces:ital,opsz,SOFT,wght@0,9..144,0..100,400..700;1,9..144,0..100,400..700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Figtree:wght@400..800&family=Fraunces:ital,opsz,SOFT,wght@0,9..144,0..100,400..700;1,9..144,0..100,400..700&display=swap">
 <link rel="stylesheet" href="/assets/styles.css?v=${VERSION}">${ld}
 </head>
 <body class="has-mobile-bar">
