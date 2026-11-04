@@ -1,5 +1,5 @@
 // Create an admin account (or a fresh sign-in link for an existing one).
-//   DATABASE_URL=... SITE_URL=https://www.neighborhoodperks.com node scripts/admin.mjs you@example.com
+//   DATABASE_URL=... SITE_URL=https://neighborhoodperks.com node scripts/admin.mjs you@example.com
 // Prints a one-time link where the admin sets their password.
 import { db } from "../lib/db.mjs";
 import { createInvite } from "../lib/auth.mjs";

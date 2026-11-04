@@ -11,7 +11,7 @@ const path = require("path");
 const ROOT = __dirname;
 const SRC = path.join(ROOT, "src");
 const OUT = path.join(ROOT, "dist");
-const SITE = "https://www.neighborhoodperks.com";
+const SITE = "https://neighborhoodperks.com";
 
 const BIZ = {
   name: "Neighborhood Perks",

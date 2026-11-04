@@ -39,11 +39,11 @@ password `neighborhood-demo`.
 
 1. **Database:** in the Netlify site, Extensions → Neon → add a database (this sets `NETLIFY_DATABASE_URL`).
    Or set `DATABASE_URL` to any Postgres 14+ that allows the `btree_gist` extension.
-2. **Environment variables:** `SITE_URL=https://www.neighborhoodperks.com`.
+2. **Environment variables:** `SITE_URL=https://neighborhoodperks.com`.
    For emails: `RESEND_API_KEY` and `MAIL_FROM` (e.g. `Neighborhood Perks <bookings@neighborhoodperks.com>`).
    Without them bookings still work; emails are skipped and logged.
 3. **Deploy.** The build creates the tables.
-4. **First admin:** `DATABASE_URL=… SITE_URL=https://www.neighborhoodperks.com node scripts/admin.mjs you@example.com`
+4. **First admin:** `DATABASE_URL=… SITE_URL=https://neighborhoodperks.com node scripts/admin.mjs you@example.com`
    prints a one-time link to set your password. Then add providers from the dashboard's Providers tab.
 
 Forms that aren't bookings (contact, provider applications, service votes, "something else" requests)
