@@ -394,3 +394,8 @@ p { margin: 0 0 1em; }
 .prose { max-width: 720px; }
 .prose p { color: var(--ink-soft); }
 .note { font-size: .9rem; color: var(--muted); }
+
+/* Header "Sign in" / "My account" link */
+.header-signin { font-weight: 700; color: var(--ink); text-decoration: none; font-size: .96rem; white-space: nowrap; padding: 8px 4px; }
+.header-signin:hover { color: var(--coral-dark); }
+@media (max-width: 880px) { .header-signin { display: none; } }

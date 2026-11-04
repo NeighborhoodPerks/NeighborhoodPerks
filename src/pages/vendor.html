@@ -9,7 +9,7 @@
       <div class="field mt-s"><label for="s-pass">Password</label><input id="s-pass" type="password" name="password" autocomplete="current-password" required></div>
       <div class="form-foot"><button class="btn btn-primary" type="submit">Sign in</button></div>
       <div class="form-status" role="alert"></div>
-      <p class="muted mt-m" style="font-size:.92rem">Forgot your password or new here? Call or text <a href="{{phone_href}}">{{phone}}</a> and we'll send you a sign-in link.</p>
+      <p class="muted mt-m" style="font-size:.92rem"><a href="/signin/?as=pro&amp;mode=forgot">Forgot your password?</a> · New pro? <a href="/signin/?as=pro&amp;mode=signup">Create an account</a> · Homeowner? <a href="/signin/">Sign in here</a></p>
     </form>
   </section>
 
@@ -28,6 +28,12 @@
         <button type="button" class="btn btn-ghost btn-sm" data-act="signout">Sign out</button>
       </div>
     </div>
+
+    <div class="pending-banner" data-pending hidden>
+      <strong>Thanks for signing up!</strong> We're reviewing your account and will email you when you're approved.
+      Homeowners can't see or book you until then, so use this time to add your photo and bio, set your hours, and check your services.
+    </div>
+    <div class="pending-banner is-admin" data-applications hidden></div>
 
     <nav class="tabs" role="tablist">
       <button type="button" role="tab" data-tab="calendar" aria-selected="true">Calendar</button>

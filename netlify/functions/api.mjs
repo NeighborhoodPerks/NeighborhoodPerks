@@ -7,7 +7,11 @@ import {
   availability, createBooking, bookingView, bookingIdByToken, cancelBooking, rescheduleBooking,
   setBookingStatus, bookingEvents, BUSINESS_TZ,
 } from "../../lib/bookings.mjs";
-import { login, logout, currentUser, requireUser, inviteInfo, acceptInvite } from "../../lib/auth.mjs";
+import { login, logout, currentUser, requireUser, inviteInfo, acceptInvite, verifyEmail } from "../../lib/auth.mjs";
+import {
+  signupCustomer, signupProvider, forgotPassword, resendVerification, customerProfile, updateCustomerProfile,
+  customerBookings, assertCustomerBooking, approveVendor, declineVendor,
+} from "../../lib/accounts.mjs";
 import {
   calendarEvents, assertBookingAccess, getHours, setHours, addTimeOff, deleteTimeOff,
   vendorServices, setVendorService, listVendors, createVendor, updateVendor, vendorInvite,
@@ -55,14 +59,19 @@ route("GET", "/api/services", async () => {
   return json({ services: rows, timezone: BUSINESS_TZ });
 });
 
-route("GET", "/api/availability", async ({ url }) => {
+route("GET", "/api/availability", async ({ req, url }) => {
   const serviceSlug = str(url.searchParams.get("service"), "Service", { max: 80 });
   const fromDate = isoDate(url.searchParams.get("from"), "from");
   const toDate = isoDate(url.searchParams.get("to"), "to");
   let excludeBookingId = null;
   let vendorId = url.searchParams.get("vendor") ? uuid(url.searchParams.get("vendor")) : null;
   const t = url.searchParams.get("t");
-  if (t) {
+  if (url.searchParams.get("booking")) {
+    const user = await requireUser(req, ["customer"]);
+    excludeBookingId = uuid(url.searchParams.get("booking"));
+    await assertCustomerBooking(user, excludeBookingId);
+    vendorId = (await bookingView(excludeBookingId)).vendor_id;
+  } else if (t) {
     excludeBookingId = await bookingIdByToken(t);
     vendorId = (await bookingView(excludeBookingId)).vendor_id;
   }
@@ -88,7 +97,12 @@ route("POST", "/api/bookings", async ({ req, body }) => {
     notes: str(body.notes, "Notes", { optional: true, max: 2000 }),
   };
   const { booking, manageToken } = await createBooking(input);
-  return json({ booking: publicBooking(booking), manageToken }, 201);
+  // Signed in as a homeowner → it's theirs. Otherwise, if a *verified* account owns this email, it's theirs too.
+  const me = await currentUser(req);
+  const [owner] = me && me.role === "customer" ? [{ id: me.id }]
+    : await db().query(`SELECT id FROM users WHERE role = 'customer' AND email_verified_at IS NOT NULL AND lower(email) = lower($1)`, [input.email]);
+  if (owner) await db().query(`UPDATE bookings SET customer_user_id = $2 WHERE id = $1`, [booking.id, owner.id]);
+  return json({ booking: publicBooking(booking), manageToken, inAccount: !!owner }, 201);
 });
 
 const publicBooking = (b) => ({
@@ -130,18 +144,59 @@ route("POST", "/api/booking/reschedule", async ({ req, body }) => {
 // --- auth --------------------------------------------------------------------
 
 route("POST", "/api/auth/login", async ({ req, body }) => {
-  const cookie = await login(email(body.email), str(body.password, "Password", { max: 200 }), clientIp(req));
-  return json({ ok: true }, 200, { "set-cookie": cookie });
+  const r = await login(email(body.email), str(body.password, "Password", { max: 200 }), clientIp(req));
+  return json({ ok: true, role: r.role }, 200, { "set-cookie": r.cookies });
 });
 route("POST", "/api/auth/logout", async ({ req }) => json({ ok: true }, 200, { "set-cookie": await logout(req) }));
 route("GET", "/api/auth/me", async ({ req }) => {
   const u = await currentUser(req);
-  return json({ user: u && { email: u.email, role: u.role, vendor_id: u.vendor_id, vendor_name: u.vendor_name } });
+  return json({ user: u && {
+    email: u.email, role: u.role, name: u.name, vendor_id: u.vendor_id, vendor_name: u.vendor_name,
+    vendor_status: u.vendor_status, email_verified: !!u.email_verified_at,
+  } });
+});
+route("POST", "/api/auth/signup", async ({ req, body }) => {
+  const r = body.as === "provider" ? await signupProvider(body, clientIp(req)) : await signupCustomer(body, clientIp(req));
+  return json({ ok: true, role: r.role }, 201, { "set-cookie": r.cookies });
+});
+route("POST", "/api/auth/forgot", async ({ req, body }) => json(await forgotPassword(body, clientIp(req))));
+route("POST", "/api/auth/verify", async ({ req, body }) => {
+  await rateLimit(`verifylink:${clientIp(req)}`, 30, 3600);
+  return json(await verifyEmail(body.t));
+});
+route("POST", "/api/auth/verify/resend", async ({ req }) => json(await resendVerification(await requireUser(req, ["customer"]))));
+
+// --- homeowner account -------------------------------------------------------------
+
+route("GET", "/api/account", async ({ req }) => {
+  const user = await requireUser(req, ["customer"]);
+  return json({ profile: await customerProfile(user), bookings: (await customerBookings(user)).map((b) => ({
+    ...b, vendor_photo_url: b.vendor_photo_version ? `/api/pros/${b.vendor_id}/photo?v=${b.vendor_photo_version}` : null,
+  })) });
+});
+route("PUT", "/api/account", async ({ req, body }) => {
+  const user = await requireUser(req, ["customer"]);
+  return json({ profile: await updateCustomerProfile(user, body) });
+});
+route("POST", "/api/account/bookings/:id/cancel", async ({ req, params, body }) => {
+  const user = await requireUser(req, ["customer"]);
+  const id = uuid(params.id);
+  await assertCustomerBooking(user, id);
+  return json({ booking: publicBooking(await cancelBooking(id, { actor: "customer", reason: str(body.reason, "Reason", { optional: true, max: 500 }) })) });
+});
+route("POST", "/api/account/bookings/:id/reschedule", async ({ req, params, body }) => {
+  const user = await requireUser(req, ["customer"]);
+  const id = uuid(params.id);
+  await assertCustomerBooking(user, id);
+  const start = isoInstant(body.start, "Time");
+  if (start < new Date()) throw bad("That time has already passed.");
+  return json({ booking: publicBooking(await rescheduleBooking(id, start, { actor: "customer", keepVendor: true })) });
 });
 route("GET", "/api/auth/invite", async ({ url }) => json(await inviteInfo(url.searchParams.get("t"))));
 route("POST", "/api/auth/invite", async ({ req, body }) => {
   await rateLimit(`invite:${clientIp(req)}`, 20, 3600);
-  return json({ ok: true }, 200, { "set-cookie": await acceptInvite(body.t, body.password) });
+  const r = await acceptInvite(body.t, body.password);
+  return json({ ok: true, role: r.role }, 200, { "set-cookie": r.cookies });
 });
 
 // --- vendor + admin ------------------------------------------------------------
@@ -250,6 +305,14 @@ route("POST", "/api/admin/vendors", async ({ req, body }) => {
 route("PATCH", "/api/admin/vendors/:id", async ({ req, params, body }) => {
   await requireUser(req, ["admin"]);
   return json(await updateVendor(uuid(params.id), body));
+});
+route("POST", "/api/admin/vendors/:id/approve", async ({ req, params }) => {
+  await requireUser(req, ["admin"]);
+  return json(await approveVendor(uuid(params.id)));
+});
+route("POST", "/api/admin/vendors/:id/decline", async ({ req, params }) => {
+  await requireUser(req, ["admin"]);
+  return json(await declineVendor(uuid(params.id)));
 });
 route("POST", "/api/admin/vendors/:id/invite", async ({ req, params }) => {
   await requireUser(req, ["admin"]);

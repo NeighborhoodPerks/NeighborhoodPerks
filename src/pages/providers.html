@@ -6,7 +6,7 @@
       <span class="eyebrow">For service pros</span>
       <h1>More jobs per trip. Less time chasing leads.</h1>
       <p class="lede">Neighborhood Perks groups homeowners on the same streets who need the same service, then sends that work to pros we trust. If you do great work, we'd like to meet you.</p>
-      <div class="btn-row mt-m"><a class="btn btn-primary" href="#apply">Apply now {{icon:arrow}}</a></div>
+      <div class="btn-row mt-m"><a class="btn btn-primary" href="/signin/?as=pro&amp;mode=signup">Create your pro account {{icon:arrow}}</a><a class="btn btn-ghost" href="/signin/?as=pro">Pro sign in</a></div>
     </div>
     <ul class="why-list reveal" style="grid-template-columns:1fr">
       <li><span class="icon-badge tint-green">{{icon:route}}</span><div><h3>Stacked, nearby jobs</h3><p>Several homes in one neighborhood in one trip means less windshield time and more billable time.</p></div></li>
@@ -37,9 +37,17 @@
         </ul>
       </div>
     </div>
-    <form class="form-card reveal" name="provider-application" method="POST" action="/thanks/" data-netlify="true" netlify-honeypot="company_website" data-success="Application received. Thank you! We'll be in touch soon to learn more about your business.">
+    <div class="stack reveal">
+    <div class="card signup-cta">
+      <h3>Do window re-screening, dog walking or pet sitting?</h3>
+      <p class="muted">Create your pro account now. Set up your profile, photo, hours and services, and you're ready to take bookings the moment we approve you.</p>
+      <a class="btn btn-primary" href="/signin/?as=pro&amp;mode=signup">Create your pro account {{icon:arrow}}</a>
+    </div>
+    <form class="form-card" name="provider-application" method="POST" action="/thanks/" data-netlify="true" netlify-honeypot="company_website" data-success="Application received. Thank you! We'll be in touch soon to learn more about your business.">
       <input type="hidden" name="form-name" value="provider-application">
       <p class="hp"><label>Leave this empty <input name="company_website" tabindex="-1" autocomplete="off"></label></p>
+      <h3>Offer a different service?</h3>
+      <p class="muted">Tell us about it and we'll be in touch as we add new services.</p>
       <div class="form-grid">
         <div class="field"><label for="p-name">Your name</label><input id="p-name" name="name" autocomplete="name" required></div>
         <div class="field"><label for="p-biz">Business name <span class="hint">(optional)</span></label><input id="p-biz" name="business" autocomplete="organization"></div>
@@ -67,5 +75,6 @@
       </div>
       <div class="form-status" role="status" aria-live="polite"></div>
     </form>
+    </div>
   </div>
 </section>

@@ -76,6 +76,8 @@ createServer(async (req, res) => {
       for await (const c of req) chunks.push(c);
       const r = await handle(new Request(url, { method: req.method, headers: req.headers, body: ["GET", "HEAD"].includes(req.method) ? undefined : Buffer.concat(chunks) }));
       const headers = Object.fromEntries(r.headers);
+      const cookies = r.headers.getSetCookie();
+      if (cookies.length) headers["set-cookie"] = cookies; // keep each cookie as its own header line
       res.writeHead(r.status, headers);
       res.end(Buffer.from(await r.arrayBuffer()));
       return;

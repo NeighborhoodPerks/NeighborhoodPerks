@@ -1,0 +1,52 @@
+<!--{"title": "My account", "description": "Your Neighborhood Perks bookings and details.", "path": "/account/", "noindex": true, "css": ["/assets/app/app.css"], "js": ["/assets/app/api.js", "/assets/app/account.js"]}-->
+<section class="page-hero" style="padding-bottom:0">
+  <div class="wrap acct-head">
+    <div>
+      <span class="eyebrow">My account</span>
+      <h1 data-bind="hello">My account</h1>
+    </div>
+    <div class="btn-row">
+      <a class="btn btn-primary" href="/book/">Book a service</a>
+      <button type="button" class="btn btn-ghost" data-act="signout">Sign out</button>
+    </div>
+  </div>
+</section>
+
+<section class="section-tight">
+  <div class="wrap" id="account">
+    <div class="verify-banner" data-verify hidden>
+      <div><strong>Please confirm your email.</strong> We sent a link to <span data-bind="email"></span>. Once you click it, bookings you made with this email before signing up will show up here too.</div>
+      <button type="button" class="btn btn-ghost btn-sm" data-act="resend">Send it again</button>
+    </div>
+    <div class="welcome-banner" data-welcome hidden>
+      <strong>Welcome to Neighborhood Perks!</strong> Your account is ready. Book a service and it'll show up here.
+    </div>
+
+    <div class="split split-form acct-grid">
+      <div>
+        <h2 class="acct-h2">Upcoming</h2>
+        <div class="acct-list" data-bind="upcoming"><p class="muted">Loading…</p></div>
+        <h2 class="acct-h2 mt-l">Past &amp; cancelled</h2>
+        <div class="acct-list" data-bind="past"></div>
+      </div>
+      <aside>
+        <form class="card" data-form="profile" novalidate>
+          <h3>Your details</h3>
+          <p class="muted" style="font-size:.92rem">We fill these in for you when you book.</p>
+          <div class="field"><label for="a-name">Name</label><input id="a-name" name="name" autocomplete="name" required maxlength="120"></div>
+          <div class="field mt-s"><label for="a-phone">Mobile phone</label><input id="a-phone" name="phone" type="tel" autocomplete="tel" maxlength="40"></div>
+          <div class="field mt-s"><label for="a-address">Street address</label><input id="a-address" name="address" autocomplete="street-address" maxlength="240"></div>
+          <div class="field mt-s"><label for="a-area">Neighborhood</label><select id="a-area" name="area"><option value="">Choose…</option></select></div>
+          <div class="field mt-s"><label>Email</label><input data-bind="email-input" readonly class="readonly"></div>
+          <div class="form-foot"><button class="btn btn-dark btn-sm" type="submit">Save details</button></div>
+          <div class="form-status" role="status"></div>
+        </form>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<dialog class="sheet" data-sheet>
+  <form method="dialog" class="sheet-close"><button aria-label="Close">×</button></form>
+  <div data-bind="sheet"></div>
+</dialog>

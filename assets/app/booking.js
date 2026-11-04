@@ -243,6 +243,16 @@
   var saved = {};
   try { saved = JSON.parse(localStorage.getItem("np-contact") || "{}"); } catch (e) {}
   ["name", "phone", "email", "address"].forEach(function (k) { if (saved[k] && form.elements[k]) form.elements[k].value = saved[k]; });
+  // Signed-in homeowners: fill in their saved details (the server decides; the cookie is only a hint to ask)
+  if (/(?:^|;\s*)np_role=customer/.test(document.cookie)) {
+    NP.api("GET", "/api/account").then(function (res) {
+      var p = res.profile;
+      if (p.name) form.elements.name.value = p.name;
+      if (p.phone) form.elements.phone.value = p.phone;
+      if (p.email) { form.elements.email.value = p.email; form.elements.email.readOnly = true; form.elements.email.classList.add("readonly"); }
+      if (p.address) form.elements.address.value = p.address;
+    }, function () {});
+  }
 
   form.addEventListener("submit", function (e) {
     e.preventDefault();
@@ -273,7 +283,11 @@
         '<span class="muted">With ' + esc(b.vendor_business || b.vendor_first_name) + ", who has been notified</span>";
       var a = $('[data-bind="manage-link"]');
       a.href = link; a.textContent = link;
-      $('[data-bind="manage-btn"]').href = link;
+      $('[data-bind="manage-btn"]').href = res.inAccount ? "/account/" : link;
+      $('[data-bind="manage-btn"]').textContent = res.inAccount ? "See it in My account" : "View my booking";
+      $('[data-bind="account-note"]').innerHTML = res.inAccount
+        ? "It's saved in your account too."
+        : 'Want all your bookings in one place? <a href="/signin/?mode=signup">Create a free account</a> with the same email.';
       go("done");
     }, function (err) {
       status.className = "form-status err";

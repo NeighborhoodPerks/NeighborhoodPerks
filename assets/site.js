@@ -78,6 +78,14 @@
     });
   });
 
+  var role = (document.cookie.match(/(?:^|;\s*)np_role=([a-z]+)/) || [])[1];
+  if (role) {
+    document.querySelectorAll("[data-account-link]").forEach(function (a) {
+      a.textContent = role === "customer" ? "My account" : "Dashboard";
+      a.href = role === "customer" ? "/account/" : "/vendor/";
+    });
+  }
+
   var y = document.getElementById("year");
   if (y) y.textContent = new Date().getFullYear();
 })();

@@ -44,6 +44,7 @@
     NP.api("GET", "/api/auth/me").then(function (res) {
       me = res.user;
       if (!me) return view("signin");
+      if (me.role === "customer") { location.replace("/account/"); return; }
       boot();
     }, function (err) {
       view("signin");
@@ -59,8 +60,9 @@
     var s = $(".form-status", f);
     var btn = $('button[type="submit"]', f);
     btn.disabled = true;
-    NP.api("POST", "/api/auth/login", { email: f.email.value, password: f.password.value }).then(function () {
+    NP.api("POST", "/api/auth/login", { email: f.email.value, password: f.password.value }).then(function (res) {
       f.password.value = "";
+      if (res.role === "customer") { location.href = "/account/"; return; }
       start();
     }, function (err) {
       s.className = "form-status err";
@@ -74,9 +76,11 @@
     $('[data-bind="role"]').textContent = isAdmin() ? "Admin" : "Provider";
     $$("[data-admin]").forEach(function (el) { el.hidden = !isAdmin(); });
     if (isAdmin()) loadVendors();
+    $("[data-pending]").hidden = me.vendor_status !== "pending";
     initCalendar();
     loadInbox();
-    tab("calendar");
+    var welcome = new URLSearchParams(location.search).get("welcome");
+    tab(me.vendor_status === "pending" && welcome ? "profile" : "calendar");
   }
 
   // --- tabs --------------------------------------------------------------------------
@@ -91,6 +95,7 @@
     if (name === "vendors") loadVendors();
   }
   $$("[data-tab]").forEach(function (b) { b.addEventListener("click", function () { tab(b.getAttribute("data-tab")); }); });
+  root.addEventListener("click", function (e) { if (e.target.closest("[data-goto-providers]")) tab("vendors"); });
 
   // --- calendar ---------------------------------------------------------------------
   var COLORS = { confirmed: "#2c6a4b", completed: "#8aa596", cancelled: "#c9bfb0", no_show: "#c24c28" };
@@ -510,20 +515,30 @@
       sel.value = keep;
       renderVendors();
       renderNewVendorServices();
+      var waiting = vendors.filter(function (v) { return v.status === "pending"; }).length;
+      var ab = $("[data-applications]");
+      ab.hidden = !waiting;
+      if (waiting) ab.innerHTML = "<strong>" + waiting + " provider application" + (waiting === 1 ? " is" : "s are") + " waiting for you.</strong> " +
+        '<button type="button" class="linklike" data-goto-providers>Review in Providers</button>';
     }, function (err) { toast(err.message, true); });
   }
   function renderVendors() {
     var box = $('[data-bind="vendors"]');
     if (!vendors.length) { box.innerHTML = '<p class="muted">No providers yet. Add your first one below.</p>'; return; }
     box.innerHTML = '<div class="vendor-list">' + vendors.map(function (v) {
-      return '<div class="vendor-card' + (v.active ? "" : " is-paused") + '"><div><strong>' + esc(v.name) + "</strong>" + (v.business_name ? ' <span class="muted">· ' + esc(v.business_name) + "</span>" : "") +
+      var stateTag = v.status === "pending" ? '<span class="tag-pending">Waiting for approval</span>' : v.status === "declined" ? '<span class="tag-declined">Declined</span>' : (v.active ? "" : '<span class="tag-declined">Paused</span>');
+      return '<div class="vendor-card' + (v.status === "pending" ? " is-pending" : v.active ? "" : " is-paused") + '"><div><strong>' + esc(v.name) + "</strong>" + (v.business_name ? ' <span class="muted">· ' + esc(v.business_name) + "</span>" : "") + " " + stateTag +
         '<div class="muted">' + esc(v.email) + (v.phone ? " · " + esc(v.phone) : "") + "</div>" +
         '<div class="muted" style="font-size:.9rem;margin-top:4px">' + (v.areas && v.areas.length ? esc(v.areas.map(areaName).join(", ")) : "No neighborhoods yet") + "</div>" +
         '<div class="vendor-svcs">' + (v.services.length ? v.services.map(function (s) { return '<span class="chip-sm">' + esc(s.name) + (s.active ? "" : " (off)") + "</span>"; }).join("") : '<span class="muted">No services</span>') + "</div>" +
         (v.has_password ? "" : '<div class="warn-sm">Hasn\'t set a password yet</div>') + "</div>" +
         '<div class="vendor-actions"><button class="btn btn-ghost btn-sm" data-v-cal="' + v.id + '">Calendar</button>' +
         '<button class="btn btn-ghost btn-sm" data-v-invite="' + v.id + '">' + (v.has_password ? "Reset link" : "Sign-in link") + "</button>" +
-        '<button class="btn btn-ghost btn-sm" data-v-active="' + v.id + '" data-on="' + (v.active ? "1" : "0") + '">' + (v.active ? "Pause" : "Resume") + "</button></div></div>";
+        (v.status === "approved"
+          ? '<button class="btn btn-ghost btn-sm" data-v-active="' + v.id + '" data-on="' + (v.active ? "1" : "0") + '">' + (v.active ? "Pause" : "Resume") + "</button>"
+          : '<button class="btn btn-primary btn-sm" data-v-approve="' + v.id + '">Approve</button>' +
+            (v.status === "pending" ? '<button class="btn btn-ghost btn-sm danger" data-v-decline="' + v.id + '">Decline</button>' : "")) +
+        "</div></div>";
     }).join("") + "</div>";
   }
   function renderNewVendorServices() {
@@ -544,6 +559,23 @@
     }
     if (b.hasAttribute("data-v-invite")) {
       NP.api("POST", "/api/admin/vendors/" + b.getAttribute("data-v-invite") + "/invite", {}).then(function (res) { showInvite(res.inviteUrl); }, function (err) { toast(err.message, true); });
+    }
+    if (b.hasAttribute("data-v-approve")) {
+      NP.api("POST", "/api/admin/vendors/" + b.getAttribute("data-v-approve") + "/approve", {}).then(function () {
+        toast("Approved. They're now bookable in their neighborhoods, and we've emailed them."); loadVendors();
+      }, function (err) { toast(err.message, true); });
+    }
+    if (b.hasAttribute("data-v-decline")) {
+      var row = b.closest(".vendor-card");
+      if (!row.querySelector("[data-confirm-decline]")) {
+        row.insertAdjacentHTML("beforeend", '<div class="confirm-box" data-confirm-decline style="width:100%">Decline this application? They won\'t be able to sign in. <button class="btn btn-ghost btn-sm danger" data-v-decline-yes="' + b.getAttribute("data-v-decline") + '">Yes, decline</button></div>');
+        return;
+      }
+    }
+    if (b.hasAttribute("data-v-decline-yes")) {
+      NP.api("POST", "/api/admin/vendors/" + b.getAttribute("data-v-decline-yes") + "/decline", {}).then(function () {
+        toast("Application declined."); loadVendors();
+      }, function (err) { toast(err.message, true); });
     }
     if (b.hasAttribute("data-v-active")) {
       NP.api("PATCH", "/api/admin/vendors/" + b.getAttribute("data-v-active"), { active: b.getAttribute("data-on") !== "1" }).then(function () {

@@ -44,6 +44,15 @@
     X-Robots-Tag = "noindex"
     Referrer-Policy = "no-referrer"
 [[headers]]
+  for = "/account/*"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+    Referrer-Policy = "no-referrer"
+[[headers]]
+  for = "/signin/*"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+[[headers]]
   for = "/vendor/*"
   [headers.values]
     X-Robots-Tag = "noindex"

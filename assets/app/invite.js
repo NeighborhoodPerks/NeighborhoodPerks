@@ -9,6 +9,7 @@
 
   NP.api("GET", "/api/auth/invite?t=" + encodeURIComponent(t)).then(function (res) {
     who.textContent = "For " + res.email + ". You'll use this email and password to sign in.";
+    if (res.purpose === "reset") form.querySelector(".bk-title").textContent = "Choose a new password";
     form.querySelector("[data-fields]").hidden = false;
     form.querySelector("#i-pass").focus();
   }, function (e) { who.textContent = ""; err(e.message); });
@@ -21,8 +22,8 @@
     if (a !== b) return err("Those two passwords don't match.");
     var btn = form.querySelector('button[type="submit"]');
     btn.disabled = true;
-    NP.api("POST", "/api/auth/invite", { t: t, password: a }).then(function () {
-      location.href = "/vendor/";
+    NP.api("POST", "/api/auth/invite", { t: t, password: a }).then(function (res) {
+      location.href = res.role === "customer" ? "/account/" : "/vendor/";
     }, function (e2) { err(e2.message); btn.disabled = false; });
   });
 })();

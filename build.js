@@ -45,10 +45,12 @@ function header(current) {
     </a>
     <nav class="nav" id="site-nav" aria-label="Main">
         ${links}
+        <a class="nav-phone" href="/signin/" data-account-link>Sign in</a>
         <a class="nav-phone" href="${BIZ.phone_href}">Call ${BIZ.phone}</a>
     </nav>
     <div class="header-cta">
       <a class="header-phone" href="${BIZ.phone_href}">${BIZ.phone}</a>
+      <a class="header-signin" href="/signin/" data-account-link>Sign in</a>
       <a class="btn btn-primary" href="/book/">Book a service</a>
       <button class="menu-toggle" type="button" aria-controls="site-nav" aria-expanded="false"><span class="bars"></span><span class="sr-only">Menu</span></button>
     </div>

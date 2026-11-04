@@ -1,0 +1,69 @@
+<!--{"title": "Sign in", "description": "Sign in or create your Neighborhood Perks account, as a homeowner or a service pro.", "path": "/signin/", "noindex": true, "css": ["/assets/app/app.css"], "js": ["/assets/app/api.js", "/assets/app/signin.js"]}-->
+<section class="section-tight">
+  <div class="wrap signin-wrap">
+    <div class="signin-card card" id="signin">
+      <div class="who-toggle" role="tablist" aria-label="I am a">
+        <button type="button" role="tab" data-who="customer" aria-selected="true"><span class="who-ico">{{icon:home}}</span>Homeowner</button>
+        <button type="button" role="tab" data-who="provider" aria-selected="false"><span class="who-ico">{{icon:briefcase}}</span>Service pro</button>
+      </div>
+
+      <!-- Sign in -->
+      <form data-form="signin" novalidate>
+        <h1 class="bk-title" data-bind="signin-title">Welcome back</h1>
+        <p class="muted" data-bind="signin-sub">Sign in to see and manage your bookings.</p>
+        <div class="field"><label for="si-email">Email</label><input id="si-email" type="email" name="email" autocomplete="username" required></div>
+        <div class="field mt-s"><label for="si-pass">Password</label><input id="si-pass" type="password" name="password" autocomplete="current-password" required></div>
+        <div class="form-foot"><button class="btn btn-primary" type="submit">Sign in</button><button type="button" class="linklike" data-go="forgot">Forgot password?</button></div>
+        <div class="form-status" role="alert"></div>
+        <p class="switch-line">New here? <button type="button" class="linklike" data-go="signup">Create an account</button></p>
+      </form>
+
+      <!-- Homeowner sign up -->
+      <form data-form="signup-customer" hidden novalidate>
+        <h1 class="bk-title">Create your account</h1>
+        <p class="muted">Keep all your bookings in one place and book faster next time. You can always book without an account too.</p>
+        <div class="form-grid">
+          <div class="field full"><label for="sc-name">Your name</label><input id="sc-name" name="name" autocomplete="name" required maxlength="120"></div>
+          <div class="field full"><label for="sc-email">Email</label><input id="sc-email" type="email" name="email" autocomplete="email" required maxlength="254"></div>
+          <div class="field full"><label for="sc-phone">Mobile phone <span class="hint">(optional)</span></label><input id="sc-phone" type="tel" name="phone" autocomplete="tel" maxlength="40"></div>
+          <div class="field full"><label for="sc-pass">Password <span class="hint">(at least 10 characters)</span></label><input id="sc-pass" type="password" name="password" autocomplete="new-password" required minlength="10"></div>
+        </div>
+        <div class="form-foot"><button class="btn btn-primary" type="submit">Create account</button></div>
+        <div class="form-status" role="alert"></div>
+        <p class="switch-line">Already have an account? <button type="button" class="linklike" data-go="signin">Sign in</button></p>
+      </form>
+
+      <!-- Provider sign up -->
+      <form data-form="signup-provider" hidden novalidate>
+        <h1 class="bk-title">Join as a service pro</h1>
+        <p class="muted">Create your account and set up your profile, hours and services. We review every pro before homeowners can book you, and we'll email you when you're approved.</p>
+        <div class="form-grid">
+          <div class="field"><label for="sp-name">Your name</label><input id="sp-name" name="name" autocomplete="name" required maxlength="120"></div>
+          <div class="field"><label for="sp-biz">Business name <span class="hint">(optional)</span></label><input id="sp-biz" name="business_name" autocomplete="organization" maxlength="160"></div>
+          <div class="field"><label for="sp-email">Email</label><input id="sp-email" type="email" name="email" autocomplete="email" required maxlength="254"></div>
+          <div class="field"><label for="sp-phone">Mobile phone</label><input id="sp-phone" type="tel" name="phone" autocomplete="tel" required maxlength="40"></div>
+          <div class="field full"><label for="sp-pass">Password <span class="hint">(at least 10 characters)</span></label><input id="sp-pass" type="password" name="password" autocomplete="new-password" required minlength="10"></div>
+        </div>
+        <h3 class="mt-m">Services you offer</h3>
+        <div class="check-grid" data-bind="svc-checks"><span class="muted">Loading…</span></div>
+        <h3 class="mt-m">Neighborhoods you work in</h3>
+        <div class="check-grid" data-bind="area-checks"><span class="muted">Loading…</span></div>
+        <div class="field mt-m"><label for="sp-notes">Anything we should know? <span class="hint">(optional)</span></label><textarea id="sp-notes" name="notes" maxlength="1000" placeholder="Years in business, licensed and insured, your website or reviews…"></textarea></div>
+        <div class="form-foot"><button class="btn btn-primary" type="submit">Create my pro account</button></div>
+        <div class="form-status" role="alert"></div>
+        <p class="switch-line">Already have an account? <button type="button" class="linklike" data-go="signin">Sign in</button></p>
+      </form>
+
+      <!-- Forgot password -->
+      <form data-form="forgot" hidden novalidate>
+        <h1 class="bk-title">Reset your password</h1>
+        <p class="muted">Enter your email and we'll send you a link to choose a new password.</p>
+        <div class="field"><label for="fp-email">Email</label><input id="fp-email" type="email" name="email" autocomplete="email" required></div>
+        <div class="form-foot"><button class="btn btn-primary" type="submit">Email me a link</button></div>
+        <div class="form-status" role="alert"></div>
+        <p class="switch-line"><button type="button" class="linklike" data-go="signin">← Back to sign in</button></p>
+      </form>
+    </div>
+    <p class="muted signin-help">Trouble signing in? Call or text <a href="{{phone_href}}">{{phone}}</a>.</p>
+  </div>
+</section>

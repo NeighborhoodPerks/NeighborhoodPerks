@@ -173,6 +173,28 @@ ALTER TABLE bookings ADD COLUMN IF NOT EXISTS area_id uuid REFERENCES areas(id);
 -- When each user last looked at their "What's new" list
 ALTER TABLE users ADD COLUMN IF NOT EXISTS inbox_seen_at timestamptz NOT NULL DEFAULT now();
 
+-- Accounts: homeowners can have accounts too
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('admin', 'vendor', 'customer'));
+ALTER TABLE users ADD COLUMN IF NOT EXISTS name text;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS phone text;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS address text;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS area_id uuid REFERENCES areas(id) ON DELETE SET NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified_at timestamptz;
+
+-- One-time links: 'invite' (set first password), 'reset' (forgot password), 'verify' (confirm email)
+ALTER TABLE invites ADD COLUMN IF NOT EXISTS purpose text NOT NULL DEFAULT 'invite';
+
+-- Providers who sign up themselves wait for approval before customers can see them
+ALTER TABLE vendors ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'approved';
+ALTER TABLE vendors DROP CONSTRAINT IF EXISTS vendors_status_check;
+ALTER TABLE vendors ADD CONSTRAINT vendors_status_check CHECK (status IN ('pending', 'approved', 'declined'));
+
+-- Bookings made by a signed-in (or verified) homeowner
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS customer_user_id uuid REFERENCES users(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS bookings_customer ON bookings (customer_user_id, starts_at);
+CREATE INDEX IF NOT EXISTS bookings_customer_email ON bookings (lower(customer_email));
+
 INSERT INTO areas (slug, name, zips, sort) VALUES
   ('carmel-valley', 'Carmel Valley', '{92130}', 1),
   ('torrey-highlands', 'Torrey Highlands', '{92129}', 2),
