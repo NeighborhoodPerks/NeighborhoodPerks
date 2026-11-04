@@ -10,6 +10,8 @@
     "test": "node --test \"test/*.test.mjs\""
   },
   "dependencies": {
+    "@neon/config": "^1.10.3",
+    "@neon/env": "^1.6.11",
     "@neondatabase/serverless": "1.2.0",
     "fullcalendar": "^6.1.22",
     "luxon": "3.7.2"

@@ -2,3 +2,8 @@ dist/
 node_modules/
 .DS_Store
 .netlify/
+# Secrets (database connection strings, API keys)
+.env
+.env.*
+!.env.example
+.neon
