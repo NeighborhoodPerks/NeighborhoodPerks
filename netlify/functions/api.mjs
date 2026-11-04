@@ -15,6 +15,9 @@ import {
 } from "../../lib/manage.mjs";
 import { icsFeed } from "../../lib/ics.mjs";
 import { rateLimit } from "../../lib/ratelimit.mjs";
+import {
+  listAreas, findAreas, upsertArea, listPros, getProfile, updateProfile, setPhoto, removePhoto, getPhoto, inbox, markInboxSeen,
+} from "../../lib/pros.mjs";
 import { db } from "../../lib/db.mjs";
 
 const routes = [];
@@ -57,9 +60,13 @@ route("GET", "/api/availability", async ({ url }) => {
   const fromDate = isoDate(url.searchParams.get("from"), "from");
   const toDate = isoDate(url.searchParams.get("to"), "to");
   let excludeBookingId = null;
+  let vendorId = url.searchParams.get("vendor") ? uuid(url.searchParams.get("vendor")) : null;
   const t = url.searchParams.get("t");
-  if (t) excludeBookingId = await bookingIdByToken(t);
-  return json(await availability({ serviceSlug, fromDate, toDate, excludeBookingId }));
+  if (t) {
+    excludeBookingId = await bookingIdByToken(t);
+    vendorId = (await bookingView(excludeBookingId)).vendor_id;
+  }
+  return json(await availability({ serviceSlug, vendorId, fromDate, toDate, excludeBookingId }));
 });
 
 route("POST", "/api/bookings", async ({ req, body }) => {
@@ -69,6 +76,8 @@ route("POST", "/api/bookings", async ({ req, body }) => {
   const start = isoInstant(body.start, "Time");
   if (start < new Date()) throw bad("That time has already passed.");
   const input = {
+    vendorId: uuid(body.vendor),
+    areaSlug: str(body.area, "Neighborhood", { max: 80 }),
     serviceSlug: str(body.service, "Service", { max: 80 }),
     start,
     name: str(body.name, "Name", { max: 120 }),
@@ -86,6 +95,20 @@ const publicBooking = (b) => ({
   status: b.status, starts_at: b.starts_at, ends_at: b.ends_at, service_name: b.service_name, service_slug: b.service_slug,
   customer_name: b.customer_name, address: b.address, neighborhood: b.neighborhood, notes: b.notes,
   price_cents: b.price_cents, vendor_first_name: (b.vendor_name || "").split(" ")[0], timezone: b.timezone,
+  vendor_id: b.vendor_id, vendor_business: b.vendor_business,
+  vendor_photo_url: b.vendor_photo_version ? `/api/pros/${b.vendor_id}/photo?v=${b.vendor_photo_version}` : null,
+});
+
+route("GET", "/api/areas", async () => json({ areas: (await listAreas()).map(({ slug, name, zips }) => ({ slug, name, zips })) }));
+route("GET", "/api/areas/find", async ({ url }) => json({ areas: await findAreas(url.searchParams.get("q")) }));
+route("GET", "/api/pros", async ({ url }) => {
+  const area = str(url.searchParams.get("area"), "Neighborhood", { max: 80 });
+  const service = url.searchParams.get("service") ? str(url.searchParams.get("service"), "Service", { max: 80 }) : null;
+  return json(await listPros({ areaSlug: area, serviceSlug: service }));
+});
+route("GET", "/api/pros/:id/photo", async ({ params }) => {
+  const p = await getPhoto(uuid(params.id));
+  return new Response(p.data, { headers: { "content-type": p.mime, "cache-control": "public, max-age=31536000, immutable", "x-content-type-options": "nosniff" } });
 });
 
 route("GET", "/api/booking", async ({ url }) => {
@@ -101,7 +124,7 @@ route("POST", "/api/booking/reschedule", async ({ req, body }) => {
   const id = await bookingIdByToken(body.t);
   const start = isoInstant(body.start, "Time");
   if (start < new Date()) throw bad("That time has already passed.");
-  return json({ booking: publicBooking(await rescheduleBooking(id, start, { actor: "customer" })) });
+  return json({ booking: publicBooking(await rescheduleBooking(id, start, { actor: "customer", keepVendor: true })) });
 });
 
 // --- auth --------------------------------------------------------------------
@@ -181,6 +204,30 @@ route("PUT", "/api/my/services", async ({ req, url, body }) => {
   const user = await requireUser(req, ["vendor", "admin"]);
   return json({ services: await setVendorService(scopeVendor(user, url), body, { canPrice: user.role === "admin" }) });
 });
+route("GET", "/api/my/profile", async ({ req, url }) => {
+  const user = await requireUser(req, ["vendor", "admin"]);
+  return json({ profile: await getProfile(scopeVendor(user, url)), areas: await listAreas() });
+});
+route("PUT", "/api/my/profile", async ({ req, url, body }) => {
+  const user = await requireUser(req, ["vendor", "admin"]);
+  return json({ profile: await updateProfile(scopeVendor(user, url), body) });
+});
+route("POST", "/api/my/photo", async ({ req, url, body }) => {
+  const user = await requireUser(req, ["vendor", "admin"]);
+  return json({ profile: await setPhoto(scopeVendor(user, url), body) });
+});
+route("DELETE", "/api/my/photo", async ({ req, url }) => {
+  const user = await requireUser(req, ["vendor", "admin"]);
+  return json({ profile: await removePhoto(scopeVendor(user, url)) });
+});
+route("GET", "/api/my/inbox", async ({ req }) => {
+  const user = await requireUser(req, ["vendor", "admin"]);
+  return json(await inbox(user));
+});
+route("POST", "/api/my/inbox/seen", async ({ req }) => {
+  const user = await requireUser(req, ["vendor", "admin"]);
+  return json(await markInboxSeen(user));
+});
 route("GET", "/api/my/ics", async ({ req, url }) => {
   const user = await requireUser(req, ["vendor", "admin"]);
   return json(await vendorIcsUrl(scopeVendor(user, url)));
@@ -207,6 +254,14 @@ route("PATCH", "/api/admin/vendors/:id", async ({ req, params, body }) => {
 route("POST", "/api/admin/vendors/:id/invite", async ({ req, params }) => {
   await requireUser(req, ["admin"]);
   return json(await vendorInvite(uuid(params.id)));
+});
+route("GET", "/api/admin/areas", async ({ req }) => {
+  await requireUser(req, ["admin"]);
+  return json({ areas: await listAreas({ all: true }) });
+});
+route("POST", "/api/admin/areas", async ({ req, body }) => {
+  await requireUser(req, ["admin"]);
+  return json({ areas: await upsertArea(body) });
 });
 route("GET", "/api/admin/services", async ({ req }) => {
   await requireUser(req, ["admin"]);
@@ -239,7 +294,7 @@ export async function handle(req) {
     if (req.method !== "GET") {
       // Browsers can't send JSON cross-site without a CORS preflight, which we never allow: CSRF protection
       if (!(req.headers.get("content-type") || "").includes("application/json")) throw bad("Send JSON.", "content_type");
-      body = await readJson(req);
+      body = await readJson(req, url.pathname === "/api/my/photo" ? 900_000 : 20_000);
     }
     const m = url.pathname.match(r.re);
     const params = Object.fromEntries(r.keys.map((k, i) => [k, decodeURIComponent(m[i + 1])]));

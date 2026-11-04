@@ -28,7 +28,7 @@
     $('[data-bind="summary"]').innerHTML =
       "<strong>" + NP.esc(b.service_name) + "</strong><span>" + NP.esc(NP.when(b.starts_at)) + "</span>" +
       "<span>" + NP.esc(b.address) + "</span>" +
-      (b.vendor_first_name ? '<span class="muted">Your pro: ' + NP.esc(b.vendor_first_name) + "</span>" : "") +
+      '<span class="muted">Your pro: ' + NP.esc(b.vendor_business || b.vendor_first_name) + "</span>" +
       (b.price_cents != null ? '<span class="muted">From ' + NP.money(b.price_cents) + "</span>" : "") +
       (b.notes ? '<span class="muted">Notes: ' + NP.esc(b.notes) + "</span>" : "");
     $('[data-bind="actions"]').hidden = b.status !== "confirmed" || past;

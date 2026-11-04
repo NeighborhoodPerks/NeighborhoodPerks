@@ -12,6 +12,7 @@
   var vendorFilter = ""; // admin: "" = everyone
   var vendors = [];
   var allServices = [];
+  var allAreas = [];
   var DAYS = ["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
   function view(name) { $$("[data-view]").forEach(function (el) { el.hidden = el.getAttribute("data-view") !== name; }); }
@@ -74,6 +75,7 @@
     $$("[data-admin]").forEach(function (el) { el.hidden = !isAdmin(); });
     if (isAdmin()) loadVendors();
     initCalendar();
+    loadInbox();
     tab("calendar");
   }
 
@@ -83,6 +85,7 @@
     $$("[data-panel]").forEach(function (p) { p.hidden = p.getAttribute("data-panel") !== name; });
     if (name === "calendar" && cal) setTimeout(function () { cal.updateSize(); }, 0);
     if (name === "hours") loadHours();
+    if (name === "profile") loadProfile();
     if (name === "services") loadServices();
     if (name === "sync") loadIcs();
     if (name === "vendors") loadVendors();
@@ -494,9 +497,11 @@
   // --- admin: providers ------------------------------------------------------------------
   function loadVendors() {
     if (!isAdmin()) return;
-    Promise.all([NP.api("GET", "/api/admin/vendors"), NP.api("GET", "/api/admin/services")]).then(function (r) {
+    Promise.all([NP.api("GET", "/api/admin/vendors"), NP.api("GET", "/api/admin/services"), NP.api("GET", "/api/admin/areas")]).then(function (r) {
       vendors = r[0].vendors;
       allServices = r[1].services;
+      allAreas = r[2].areas;
+      renderAreasAdmin();
       var sel = $('[data-bind="vendor-filter"]');
       var keep = sel.value;
       sel.innerHTML = '<option value="">All providers</option>' + vendors.map(function (v) {
@@ -513,6 +518,7 @@
     box.innerHTML = '<div class="vendor-list">' + vendors.map(function (v) {
       return '<div class="vendor-card' + (v.active ? "" : " is-paused") + '"><div><strong>' + esc(v.name) + "</strong>" + (v.business_name ? ' <span class="muted">· ' + esc(v.business_name) + "</span>" : "") +
         '<div class="muted">' + esc(v.email) + (v.phone ? " · " + esc(v.phone) : "") + "</div>" +
+        '<div class="muted" style="font-size:.9rem;margin-top:4px">' + (v.areas && v.areas.length ? esc(v.areas.map(areaName).join(", ")) : "No neighborhoods yet") + "</div>" +
         '<div class="vendor-svcs">' + (v.services.length ? v.services.map(function (s) { return '<span class="chip-sm">' + esc(s.name) + (s.active ? "" : " (off)") + "</span>"; }).join("") : '<span class="muted">No services</span>') + "</div>" +
         (v.has_password ? "" : '<div class="warn-sm">Hasn\'t set a password yet</div>') + "</div>" +
         '<div class="vendor-actions"><button class="btn btn-ghost btn-sm" data-v-cal="' + v.id + '">Calendar</button>' +
@@ -567,12 +573,128 @@
       services.push({ service: cb.value, duration_min: Number($('[data-k="duration_min"]', row).value), buffer_min: Number($('[data-k="buffer_min"]', row).value), price_cents: price });
     });
     if (bad) { s.className = "form-status err"; s.textContent = bad; return; }
-    NP.api("POST", "/api/admin/vendors", { name: f.name.value, business_name: f.business_name.value, email: f.email.value, phone: f.phone.value, services: services }).then(function (res) {
+    var areaSlugs = $$('[data-bind="new-vendor-areas"] input:checked', f).map(function (i) { return i.value; });
+    NP.api("POST", "/api/admin/vendors", { name: f.name.value, business_name: f.business_name.value, email: f.email.value, phone: f.phone.value, services: services, areas: areaSlugs }).then(function (res) {
       f.reset();
       s.className = "form-status";
       loadVendors();
       showInvite(res.inviteUrl);
     }, function (err) { s.className = "form-status err"; s.textContent = err.message; });
+  });
+
+
+  // --- areas (admin) -------------------------------------------------------------------
+  function areaName(slug) { var a = allAreas.find(function (x) { return x.slug === slug; }); return a ? a.name : slug; }
+  function renderAreasAdmin() {
+    $('[data-bind="areas-admin"]').innerHTML = allAreas.map(function (a) {
+      var n = vendors.filter(function (v) { return v.active && (v.areas || []).indexOf(a.slug) !== -1; }).length;
+      return '<div class="area-row"><strong>' + esc(a.name) + '</strong><span class="muted">' + esc((a.zips || []).join(", ") || "no ZIPs") + "</span>" +
+        '<span class="chip-sm">' + n + " provider" + (n === 1 ? "" : "s") + "</span>" + (a.active ? "" : '<span class="warn-sm">hidden</span>') + "</div>";
+    }).join("");
+    $('[data-bind="new-vendor-areas"]').innerHTML = allAreas.filter(function (a) { return a.active; }).map(function (a) {
+      return '<label><input type="checkbox" value="' + esc(a.slug) + '"> ' + esc(a.name) + "</label>";
+    }).join("");
+  }
+  $('[data-form="add-area"]').addEventListener("submit", function (e) {
+    e.preventDefault();
+    var f = e.target;
+    NP.api("POST", "/api/admin/areas", { name: f.name.value, zips: f.zips.value }).then(function (res) {
+      allAreas = res.areas; f.reset(); renderAreasAdmin(); toast("Neighborhood saved.");
+    }, function (err) { toast(err.message, true); });
+  });
+
+  // --- profile ---------------------------------------------------------------------------
+  var profileAreas = [];
+  function photoHtml(url, name) {
+    return url ? '<img class="avatar" src="' + esc(url) + '" alt="Your photo" width="88" height="88">'
+      : '<span class="avatar avatar-initials" style="width:88px;height:88px">' + esc((name || "?").split(/\s+/).map(function (w) { return w[0]; }).slice(0, 2).join("").toUpperCase()) + "</span>";
+  }
+  function renderProfile(p) {
+    $('[data-bind="photo"]').innerHTML = photoHtml(p.photo_url, p.name);
+    $('[data-act="remove-photo"]').hidden = !p.photo_url;
+    var f = $('[data-form="profile"]');
+    f.business_name.value = p.business_name || "";
+    f.phone.value = p.phone || "";
+    f.bio.value = p.bio || "";
+    $('[data-bind="profile-areas"]').innerHTML = profileAreas.map(function (a) {
+      return '<label><input type="checkbox" value="' + esc(a.slug) + '"' + (p.areas.indexOf(a.slug) !== -1 ? " checked" : "") + "> " + esc(a.name) + "</label>";
+    }).join("");
+  }
+  function loadProfile() {
+    var s = scope();
+    if (s === null) { $('[data-bind="profile-areas"]').innerHTML = '<p class="muted">Choose a provider at the top to edit their profile.</p>'; return; }
+    NP.api("GET", "/api/my/profile" + s).then(function (res) { profileAreas = res.areas; renderProfile(res.profile); }, function (err) { toast(err.message, true); });
+  }
+  $('[data-form="profile"]').addEventListener("submit", function (e) {
+    e.preventDefault();
+    var s = scope();
+    if (s === null) return toast("Choose a provider at the top first.", true);
+    var f = e.target;
+    var areas = $$('[data-bind="profile-areas"] input:checked').map(function (i) { return i.value; });
+    if (!areas.length) return toast("Pick at least one neighborhood, or customers won't find you.", true);
+    NP.api("PUT", "/api/my/profile" + s, { business_name: f.business_name.value, phone: f.phone.value, bio: f.bio.value, areas: areas }).then(function (res) {
+      renderProfile(res.profile); toast("Profile saved. Homeowners see it right away.");
+      if (isAdmin()) loadVendors();
+    }, function (err) { toast(err.message, true); });
+  });
+
+  // Resize in the browser so uploads stay small and fast (max 600px, JPEG)
+  function resizeImage(file) {
+    return new Promise(function (resolve, reject) {
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function () {
+        var max = 600;
+        var scale = Math.min(1, max / Math.max(img.width, img.height));
+        var w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+        var c = document.createElement("canvas");
+        c.width = w; c.height = h;
+        var ctx = c.getContext("2d");
+        ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        resolve(c.toDataURL("image/jpeg", 0.85));
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error("We couldn't read that image. Try a JPG or PNG.")); };
+      img.src = url;
+    });
+  }
+  $("#p-photo").addEventListener("change", function (e) {
+    var file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    var s = scope();
+    if (s === null) return toast("Choose a provider at the top first.", true);
+    if (!/^image\//.test(file.type)) return toast("Please choose an image file.", true);
+    toast("Uploading…");
+    resizeImage(file).then(function (dataUrl) {
+      return NP.api("POST", "/api/my/photo" + s, { dataUrl: dataUrl });
+    }).then(function (res) { renderProfile(res.profile); toast("Photo updated."); if (isAdmin()) loadVendors(); }, function (err) { toast(err.message, true); });
+  });
+  $('[data-act="remove-photo"]').addEventListener("click", function () {
+    NP.api("DELETE", "/api/my/photo" + scope(), {}).then(function (res) { renderProfile(res.profile); toast("Photo removed."); }, function (err) { toast(err.message, true); });
+  });
+
+  // --- what's new --------------------------------------------------------------------------
+  var INBOX_LABEL = { created: "New booking", rescheduled: "Moved", cancelled: "Cancelled" };
+  function loadInbox() {
+    NP.api("GET", "/api/my/inbox").then(function (res) {
+      var box = $("[data-inbox]");
+      if (!res.items.length) { box.hidden = true; return; }
+      box.hidden = false;
+      box.innerHTML = "<h2>What's new since you last checked</h2><ul>" + res.items.map(function (i) {
+        return '<li><span class="tag-new tag-' + i.type + '">' + INBOX_LABEL[i.type] + "</span>" +
+          "<span><strong>" + esc(i.service_name) + "</strong> · " + esc(i.customer_name) + " · " + esc(NP.when(i.starts_at)) + (isAdmin() ? ' <span class="muted">(' + esc(i.vendor_name) + ")</span>" : "") + "</span>" +
+          '<button type="button" class="linklike" data-open="' + i.booking_id + '">Details</button></li>';
+      }).join("") + '</ul><div class="inbox-foot"><button type="button" class="btn btn-ghost btn-sm" data-act="inbox-seen">Got it</button></div>';
+    }, function () {});
+  }
+  $("[data-inbox]").addEventListener("click", function (e) {
+    var o = e.target.closest("[data-open]");
+    if (o) showBooking(o.getAttribute("data-open"));
+    if (e.target.closest('[data-act="inbox-seen"]')) {
+      NP.api("POST", "/api/my/inbox/seen", {}).then(function () { $("[data-inbox]").hidden = true; });
+    }
   });
 
   $('[data-bind="vendor-filter"]').addEventListener("change", function (e) {
@@ -587,8 +709,8 @@
   });
 
   // Keep the calendar fresh if the tab sits open all day
-  setInterval(function () { if (cal && !document.hidden) cal.refetchEvents(); }, 120000);
-  document.addEventListener("visibilitychange", function () { if (!document.hidden && cal) cal.refetchEvents(); });
+  setInterval(function () { if (cal && !document.hidden) { cal.refetchEvents(); loadInbox(); } }, 120000);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden && cal) { cal.refetchEvents(); loadInbox(); } });
 
   start();
 })();

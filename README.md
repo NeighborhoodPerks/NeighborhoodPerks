@@ -7,9 +7,9 @@ Marketing site + online booking for a neighborhood home-services network.
 | Part | Where |
 |---|---|
 | Marketing pages | `src/pages/*.html` (JSON front matter sets title, URL, extra CSS/JS), built by `build.js` into `dist/` |
-| Customer booking (`/book/`) | `assets/app/booking.js` — service → day → real open time → details → confirmed |
+| Customer booking (`/book/`) | `assets/app/booking.js` — ZIP or neighborhood → pros who work there (photo, bio, prices, next opening) → that pro's calendar → details → confirmed, pro notified |
 | Customer's private booking page (`/booking/?t=…`) | `assets/app/manage.js` — see, move, cancel |
-| Provider + admin dashboard (`/vendor/`) | `assets/app/dashboard.js` — calendar (FullCalendar 6), hours, services, phone-calendar link, providers (admin) |
+| Provider + admin dashboard (`/vendor/`) | `assets/app/dashboard.js` — "What's new", calendar (FullCalendar 6), profile (photo, bio, neighborhoods), hours, services, phone-calendar link; admin also gets providers and neighborhoods |
 | API (`/api/*`, `/ics/*`) | `netlify/functions/api.mjs` → `lib/*.mjs` |
 | Database schema | `db/schema.sql` (Postgres; applied on every build by `scripts/migrate.mjs`) |
 
@@ -20,14 +20,15 @@ Marketing site + online booking for a neighborhood home-services network.
 - Every booking is written in a transaction that locks the provider, re-checks the slot, then inserts.
 - Postgres itself refuses overlapping bookings for one provider (`bookings_no_overlap` exclusion
   constraint), so two people clicking the same time can never both get it.
-- When several providers offer a service, the one with the fewest bookings that day gets the job.
+- Customers book a specific provider; a booking is never handed to someone else, and the provider must serve the
+  customer's neighborhood (`areas` + `vendor_areas`, matched by name or ZIP).
 - Every change is logged in `booking_events` (who, what, when).
 
 ## Run it locally
 
 ```
 npm install
-npm test          # 31 tests: slot math (incl. DST), races, permissions, API
+npm test          # 38 tests: slot math (incl. DST), races, areas, photos, permissions, API
 npm run dev       # http://localhost:8888 with demo providers and bookings (in-memory database)
 ```
 

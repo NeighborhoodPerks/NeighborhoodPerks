@@ -25,6 +25,7 @@ const { handle } = await import("../netlify/functions/api.mjs");
 const { createVendor, setHours } = await import("../lib/manage.mjs");
 const { createBooking } = await import("../lib/bookings.mjs");
 const { hashPassword } = await import("../lib/crypto.mjs");
+const { updateProfile } = await import("../lib/pros.mjs");
 
 // --- demo data -------------------------------------------------------------------
 const PASSWORD = "neighborhood-demo";
@@ -33,16 +34,20 @@ await db().query(`INSERT INTO users (email, role, password_hash) VALUES ('admin@
 const week = (days, start, end) => days.map((weekday) => ({ weekday, start, end }));
 const demo = [
   { name: "Maria Lopez", business_name: "Clear View Screens", email: "maria@demo.test", hours: week([1, 2, 3, 4, 5, 6], "08:00", "16:00"),
+    areas: ["carmel-valley", "torrey-highlands", "del-mar-mesa"], bio: "Demo profile: I re-screen windows and sliding doors across Carmel Valley. Most homes take about two hours.",
     services: [{ service: "window-rescreening", duration_min: 120, buffer_min: 30, price_cents: 12000 }] },
   { name: "Devon Park", business_name: "Happy Tails", email: "devon@demo.test", hours: week([1, 2, 3, 4, 5, 6, 7], "07:00", "19:00"),
+    areas: ["carmel-valley", "pacific-highlands-ranch", "torrey-hills"], bio: "Demo profile: dog walks and pet sitting, seven days a week.",
     services: [{ service: "pet-walking", duration_min: 30, buffer_min: 15, price_cents: 2500 }, { service: "pet-sitting", duration_min: 60, buffer_min: 15, price_cents: 4500 }] },
   { name: "Sam Rivera", business_name: null, email: "sam@demo.test", hours: week([1, 3, 5], "09:00", "17:00"),
+    areas: ["carmel-valley", "rancho-penasquitos"], bio: null,
     services: [{ service: "pet-walking", duration_min: 45, buffer_min: 15, price_cents: 2800 }] },
 ];
 for (const v of demo) {
   const { id } = await createVendor(v);
   await db().query(`UPDATE users SET password_hash = $1 WHERE vendor_id = $2`, [hash, id]);
   await setHours(id, { rules: v.hours, settings: { min_notice_min: 120, max_days_ahead: 60, slot_step_min: 30 } });
+  await updateProfile(id, { business_name: v.business_name, bio: v.bio, areas: v.areas });
 }
 const t0 = DateTime.now().setZone("America/Los_Angeles").startOf("day").plus({ days: 1 });
 const sample = [

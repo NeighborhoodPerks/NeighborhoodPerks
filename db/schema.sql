@@ -141,6 +141,47 @@ CREATE TABLE IF NOT EXISTS rate_limits (
   window_end  timestamptz NOT NULL
 );
 
+-- Where providers work. Customers pick an area (or type a ZIP) and see who serves it.
+CREATE TABLE IF NOT EXISTS areas (
+  id      uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  slug    text NOT NULL UNIQUE,
+  name    text NOT NULL,
+  zips    text[] NOT NULL DEFAULT '{}',
+  active  boolean NOT NULL DEFAULT true,
+  sort    integer NOT NULL DEFAULT 100
+);
+
+CREATE TABLE IF NOT EXISTS vendor_areas (
+  vendor_id  uuid NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
+  area_id    uuid NOT NULL REFERENCES areas(id) ON DELETE CASCADE,
+  PRIMARY KEY (vendor_id, area_id)
+);
+CREATE INDEX IF NOT EXISTS vendor_areas_area ON vendor_areas (area_id);
+
+-- Public profile
+ALTER TABLE vendors ADD COLUMN IF NOT EXISTS bio text;
+ALTER TABLE vendors ADD COLUMN IF NOT EXISTS photo_version integer NOT NULL DEFAULT 0;
+CREATE TABLE IF NOT EXISTS vendor_photos (
+  vendor_id   uuid PRIMARY KEY REFERENCES vendors(id) ON DELETE CASCADE,
+  mime        text NOT NULL CHECK (mime IN ('image/jpeg', 'image/png', 'image/webp')),
+  data        bytea NOT NULL,
+  updated_at  timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS area_id uuid REFERENCES areas(id);
+
+-- When each user last looked at their "What's new" list
+ALTER TABLE users ADD COLUMN IF NOT EXISTS inbox_seen_at timestamptz NOT NULL DEFAULT now();
+
+INSERT INTO areas (slug, name, zips, sort) VALUES
+  ('carmel-valley', 'Carmel Valley', '{92130}', 1),
+  ('torrey-highlands', 'Torrey Highlands', '{92129}', 2),
+  ('pacific-highlands-ranch', 'Pacific Highlands Ranch', '{92130,92127}', 3),
+  ('del-mar-mesa', 'Del Mar Mesa', '{92130}', 4),
+  ('torrey-hills', 'Torrey Hills', '{92130}', 5),
+  ('rancho-penasquitos', 'Rancho Peñasquitos', '{92129}', 6)
+ON CONFLICT (slug) DO NOTHING;
+
 INSERT INTO services (slug, name, sort) VALUES
   ('window-rescreening', 'Window re-screening', 1),
   ('pet-walking', 'Pet walking', 2),

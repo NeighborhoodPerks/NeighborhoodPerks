@@ -1,10 +1,10 @@
-<!--{"title": "Book a service", "description": "Book window re-screening, a dog walk or a pet sitter with Neighborhood Perks. Pick a real open time and you're confirmed on the spot.", "path": "/book/", "css": ["/assets/app/app.css"], "js": ["/assets/app/api.js", "/assets/app/booking.js"]}-->
+<!--{"title": "Book a service", "description": "Find vetted local pros in your San Diego neighborhood, see their open times and book window re-screening, dog walking or pet sitting in a minute.", "path": "/book/", "css": ["/assets/app/app.css"], "js": ["/assets/app/api.js", "/assets/app/booking.js"]}-->
 <section class="page-hero" style="padding-bottom:0">
   <div class="wrap">
     <p class="crumb"><a href="/">Home</a> / Book</p>
     <span class="eyebrow">Book a service</span>
-    <h1>Pick a time. You're booked.</h1>
-    <p class="lede">Choose a service, then a time that works for you. You're confirmed right away with a vetted local pro. No account needed.</p>
+    <h1>Find a local pro. Book a time.</h1>
+    <p class="lede">See the vetted pros who work in your neighborhood, check their calendars and book in a minute. No account needed.</p>
   </div>
 </section>
 
@@ -12,27 +12,49 @@
   <div class="wrap split split-form">
     <div class="booker card reveal" id="booker" aria-live="polite">
       <ol class="steps-bar" aria-label="Booking steps">
-        <li data-step="service" class="is-current">Service</li>
+        <li data-step="where" class="is-current">Location</li>
+        <li data-step="pros">Pro</li>
         <li data-step="time">Time</li>
-        <li data-step="details">Your details</li>
+        <li data-step="details">Details</li>
         <li data-step="done">Done</li>
       </ol>
 
-      <!-- 1. Service -->
-      <div class="bk-step" data-step="service">
-        <h2 class="bk-title">What do you need?</h2>
-        <div class="svc-grid" role="radiogroup" aria-label="Service">
-          <button type="button" class="svc" data-slug="window-rescreening"><span class="svc-art tint-sky">{{icon:art-screen}}</span><span class="svc-name">Window re-screening</span><span class="svc-meta"></span></button>
-          <button type="button" class="svc" data-slug="pet-walking"><span class="svc-art tint-sun">{{icon:art-walk}}</span><span class="svc-name">Pet walking</span><span class="svc-meta"></span></button>
-          <button type="button" class="svc" data-slug="pet-sitting"><span class="svc-art tint-coral">{{icon:art-sit}}</span><span class="svc-name">Pet sitting</span><span class="svc-meta"></span></button>
+      <!-- 1. Location -->
+      <div class="bk-step" data-step="where">
+        <h2 class="bk-title">Where do you live?</h2>
+        <form class="zip-form" data-zip novalidate>
+          <label for="w-zip" class="sr-only">ZIP code</label>
+          <input id="w-zip" inputmode="numeric" autocomplete="postal-code" maxlength="5" placeholder="ZIP code, e.g. 92130">
+          <button class="btn btn-primary" type="submit">Find pros</button>
+        </form>
+        <p class="muted mt-s mb-0">Or pick your neighborhood:</p>
+        <div class="area-chips" data-areas><span class="muted">Loading…</span></div>
+        <div class="form-status" data-where-status role="alert"></div>
+      </div>
+
+      <!-- 2. Pros -->
+      <div class="bk-step" data-step="pros" hidden>
+        <button type="button" class="bk-back" data-go="where">← Change location</button>
+        <h2 class="bk-title">Pros in <span data-bind="area-name"></span></h2>
+        <div class="svc-filter" role="radiogroup" aria-label="Service" data-filter>
+          <button type="button" data-svc="" aria-pressed="true">All</button>
+          <button type="button" data-svc="window-rescreening" aria-pressed="false">Window re-screening</button>
+          <button type="button" data-svc="pet-walking" aria-pressed="false">Pet walking</button>
+          <button type="button" data-svc="pet-sitting" aria-pressed="false">Pet sitting</button>
         </div>
+        <div class="pro-list" data-pros><p class="muted">Finding pros…</p></div>
         <p class="bk-alt">Need something else? <a href="#request" data-show-request>Send us a request</a> and we'll find a pro.</p>
       </div>
 
       <!-- 2. Date + time -->
       <div class="bk-step" data-step="time" hidden>
-        <button type="button" class="bk-back" data-go="service">← Change service</button>
-        <h2 class="bk-title">When works for you? <span class="bk-sub" data-bind="service-name"></span></h2>
+        <button type="button" class="bk-back" data-go="pros">← All pros</button>
+        <div class="pro-head" data-bind="pro-head"></div>
+        <div class="field svc-pick" data-svc-pick hidden>
+          <label for="t-svc">Service</label>
+          <select id="t-svc"></select>
+        </div>
+        <h2 class="bk-title">When works for you?</h2>
         <div class="cal" data-cal>
           <div class="cal-head">
             <button type="button" class="cal-nav" data-cal-prev aria-label="Previous month">‹</button>
@@ -60,10 +82,7 @@
           <div class="field full"><label for="d-address">Street address</label><input id="d-address" name="address" autocomplete="street-address" required maxlength="240"></div>
           <div class="field full">
             <label for="d-hood">Neighborhood</label>
-            <select id="d-hood" name="neighborhood">
-              <option>Carmel Valley</option><option>Torrey Highlands</option><option>Pacific Highlands Ranch</option>
-              <option>Del Mar Mesa</option><option>Torrey Hills</option><option>Other / not sure</option>
-            </select>
+            <input id="d-hood" name="neighborhood" readonly tabindex="-1" class="readonly">
           </div>
           <div class="field full"><label for="d-notes">Anything we should know? <span class="hint">(optional)</span></label><textarea id="d-notes" name="notes" maxlength="2000" placeholder="How many screens? Your pet's name and routine? Gate code? Neighbors booking too?"></textarea></div>
         </div>
@@ -89,10 +108,10 @@
       <div class="card">
         <h3>How it works</h3>
         <ul class="checks mb-0">
-          <li>You see real open times from vetted local pros.</li>
-          <li>Pick one and you're confirmed right away.</li>
+          <li>Tell us where you live and see the vetted pros who work there.</li>
+          <li>Pick a pro and one of their open times. You're confirmed right away.</li>
+          <li>Your pro is notified instantly.</li>
           <li>Move or cancel any time with your private link.</li>
-          <li>If neighbors nearby book too, you get the group rate.</li>
         </ul>
       </div>
       <div class="card">

@@ -28,8 +28,8 @@ let vendorA, vendorB, adminCookie, inviteA;
 before(async () => {
   await freshDb();
   const svc = [{ service: "pet-walking", duration_min: 30, buffer_min: 0, price_cents: 2500 }];
-  const a = await createVendor({ name: "Ana Walker", email: "ana@example.com", services: svc });
-  const b = await createVendor({ name: "Ben Walker", email: "ben@example.com", services: svc });
+  const a = await createVendor({ name: "Ana Walker", email: "ana@example.com", services: svc, areas: ["carmel-valley"] });
+  const b = await createVendor({ name: "Ben Walker", email: "ben@example.com", services: svc, areas: ["carmel-valley"] });
   vendorA = a.id; vendorB = b.id; inviteA = a.inviteUrl;
   for (const id of [vendorA, vendorB]) await setHours(id, { rules: ALL_WEEK("08:00", "18:00"), settings: { min_notice_min: 60, max_days_ahead: 60, slot_step_min: 30 } });
   const [u] = await db().query(`INSERT INTO users (email, role) VALUES ('owner@example.com', 'admin') RETURNING id`);
@@ -50,6 +50,7 @@ let manageToken, bookingStart;
 test("public: book, then see it with the private link only", async () => {
   bookingStart = day.set({ hour: 9 }).toUTC().toISO();
   const r = await call("POST", "/api/bookings", { body: {
+    vendor: vendorA, area: "carmel-valley",
     service: "pet-walking", start: bookingStart, name: "Jo", phone: "619-555-0123", email: "Jo@Example.com", address: "2 Oak Ave",
   } });
   assert.equal(r.status, 201, JSON.stringify(r.data));
@@ -63,10 +64,10 @@ test("public: book, then see it with the private link only", async () => {
 });
 
 test("public: validation errors are clear", async () => {
-  const r = await call("POST", "/api/bookings", { body: { service: "pet-walking", start: bookingStart, name: "Jo", phone: "12", email: "x@y.co", address: "a" } });
+  const r = await call("POST", "/api/bookings", { body: { vendor: vendorA, area: "carmel-valley", service: "pet-walking", start: bookingStart, name: "Jo", phone: "12", email: "x@y.co", address: "a" } });
   assert.equal(r.status, 400);
   assert.match(r.data.error, /area code/);
-  const past = await call("POST", "/api/bookings", { body: { service: "pet-walking", start: "2020-01-01T17:00:00Z", name: "Jo", phone: "6195550123", email: "x@y.co", address: "a" } });
+  const past = await call("POST", "/api/bookings", { body: { vendor: vendorA, area: "carmel-valley", service: "pet-walking", start: "2020-01-01T17:00:00Z", name: "Jo", phone: "6195550123", email: "x@y.co", address: "a" } });
   assert.equal(past.status, 400);
   const bot = await call("POST", "/api/bookings", { body: { website: "spam" } });
   assert.equal(bot.status, 202, "honeypot quietly accepted, nothing stored");

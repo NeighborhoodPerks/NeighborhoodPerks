@@ -31,6 +31,7 @@
 
     <nav class="tabs" role="tablist">
       <button type="button" role="tab" data-tab="calendar" aria-selected="true">Calendar</button>
+      <button type="button" role="tab" data-tab="profile">Profile</button>
       <button type="button" role="tab" data-tab="hours">Hours</button>
       <button type="button" role="tab" data-tab="services">Services</button>
       <button type="button" role="tab" data-tab="sync">Phone calendar</button>
@@ -41,6 +42,7 @@
 
     <!-- Calendar -->
     <div class="tab-panel" data-panel="calendar">
+      <div class="inbox" data-inbox hidden></div>
       <div class="cal-help">
         <span class="legend"><i class="lg-booked"></i>Booked</span>
         <span class="legend"><i class="lg-done"></i>Completed</span>
@@ -49,6 +51,33 @@
         <span class="muted cal-tip">Tap a booking for details. Drag to move it. Select empty time to block it off.</span>
       </div>
       <div id="fc" class="fc-wrap"></div>
+    </div>
+
+    <!-- Profile -->
+    <div class="tab-panel" data-panel="profile" hidden>
+      <div class="panel-card">
+        <h2>Your profile</h2>
+        <p class="muted">This is what homeowners see when they choose a pro in their neighborhood.</p>
+        <div class="photo-row">
+          <span data-bind="photo"></span>
+          <div>
+            <label class="btn btn-dark btn-sm" for="p-photo">Upload a photo</label>
+            <input id="p-photo" type="file" accept="image/jpeg,image/png,image/webp" class="sr-only">
+            <button type="button" class="linklike" data-act="remove-photo" hidden>Remove</button>
+            <p class="muted mb-0" style="font-size:.88rem;margin-top:6px">A clear photo of you or your logo. We resize it for you.</p>
+          </div>
+        </div>
+        <form data-form="profile" novalidate>
+          <div class="form-grid">
+            <div class="field"><label for="p-biz">Business name <span class="hint">(optional)</span></label><input id="p-biz" name="business_name" maxlength="160"></div>
+            <div class="field"><label for="p-phone">Phone</label><input id="p-phone" name="phone" type="tel" maxlength="40"></div>
+            <div class="field full"><label for="p-bio">About you <span class="hint">(a few sentences homeowners will read)</span></label><textarea id="p-bio" name="bio" maxlength="600" placeholder="How long you've done this, what you're great at, anything that makes you the right pick."></textarea></div>
+          </div>
+          <h3 class="mt-m">Neighborhoods you work in</h3>
+          <div class="check-grid" data-bind="profile-areas"></div>
+          <div class="form-foot"><button class="btn btn-primary" type="submit">Save profile</button></div>
+        </form>
+      </div>
     </div>
 
     <!-- Hours -->
@@ -104,6 +133,16 @@
         <div data-bind="vendors"></div>
       </div>
       <div class="panel-card">
+        <h2>Neighborhoods</h2>
+        <p class="muted">Customers pick one of these, or type a ZIP code that belongs to one.</p>
+        <div data-bind="areas-admin"></div>
+        <form class="area-row" data-form="add-area" novalidate>
+          <input name="name" placeholder="Neighborhood name" aria-label="Neighborhood name" class="inline-input">
+          <input name="zips" placeholder="ZIP codes, e.g. 92130, 92127" aria-label="ZIP codes" class="inline-input">
+          <button class="btn btn-dark btn-sm" type="submit">Add or update</button>
+        </form>
+      </div>
+      <div class="panel-card">
         <h2>Add a provider</h2>
         <form data-form="add-vendor" novalidate>
           <div class="form-grid">
@@ -112,6 +151,8 @@
             <div class="field"><label for="v-email">Email</label><input id="v-email" name="email" type="email" required></div>
             <div class="field"><label for="v-phone">Phone</label><input id="v-phone" name="phone" type="tel"></div>
           </div>
+          <h3 class="mt-m">Neighborhoods they work in</h3>
+          <div class="check-grid" data-bind="new-vendor-areas"></div>
           <h3 class="mt-m">Services they offer</h3>
           <div data-bind="new-vendor-services"></div>
           <div class="form-foot"><button class="btn btn-primary" type="submit">Add provider</button></div>

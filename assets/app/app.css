@@ -175,3 +175,59 @@
   .sheet { margin: auto 0 0; width: 100vw; max-width: 100vw; border-radius: 18px 18px 0 0; padding-bottom: calc(26px + env(safe-area-inset-bottom, 0px)); }
   .facts div { grid-template-columns: 1fr; gap: 2px; }
 }
+
+/* Grid columns must be allowed to shrink, or a horizontally scrolling row inside them
+   (the service filter) widens the whole page on phones */
+.split > * { min-width: 0; }
+
+/* The phone "Call / Book a service" bar is redundant on the booking pages themselves */
+body:has(#booker) .mobile-bar, body:has(#manage) .mobile-bar { display: none; }
+body:has(#booker).has-mobile-bar, body:has(#manage).has-mobile-bar { padding-bottom: 0; }
+
+/* ---- location-first booking ---- */
+.zip-form { display: flex; gap: 8px; max-width: 420px; }
+.zip-form input { flex: 1; min-width: 0; min-height: 50px; padding: 0 14px; border: 1.5px solid var(--line); border-radius: var(--radius-sm); font: 600 1.05rem var(--font-body); background: #fffdf9; }
+.zip-form input:focus { outline: none; border-color: var(--green-2); box-shadow: 0 0 0 4px rgba(44, 106, 75, .14); }
+.area-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.area-chip, .svc-filter button { min-height: 42px; padding: 0 16px; border-radius: 999px; border: 1.5px solid var(--line); background: #fff; font: 600 .95rem var(--font-body); color: var(--ink); cursor: pointer; }
+.area-chip:hover { border-color: var(--green-2); background: var(--green-tint); }
+.svc-filter { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 16px; scrollbar-width: none; }
+.svc-filter button { flex: none; }
+.svc-filter button[aria-pressed="true"] { background: var(--green); border-color: var(--green); color: #fff; }
+
+.pro-list { display: grid; gap: 12px; }
+.pro-card { border: 1.5px solid var(--line); border-radius: var(--radius-sm); padding: 18px; background: #fff; }
+.pro-top { display: flex; align-items: center; gap: 14px; }
+.pro-top h3 { margin: 0; font-size: 1.25rem; }
+.pro-person { margin: 2px 0 0; font-size: .92rem; }
+.pro-bio { margin: 12px 0 0; color: var(--ink-soft); font-size: .97rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.pro-svcs { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 4px; }
+.pro-svcs li { display: flex; justify-content: space-between; gap: 12px; font-size: .95rem; padding: 6px 10px; border-radius: 8px; background: var(--paper); }
+.pro-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; }
+.pro-next { font-size: .92rem; color: var(--green-2); }
+.pro-next.is-none { color: var(--muted); }
+.empty-pros { padding: 18px; border-radius: var(--radius-sm); background: var(--paper-2); }
+.avatar { border-radius: 50%; object-fit: cover; flex: none; background: var(--paper-2); }
+.avatar-initials { display: inline-grid; place-items: center; background: var(--green-tint); color: var(--green); font: 700 1.1rem var(--font-body); letter-spacing: .02em; }
+.pro-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+.pro-head div { display: flex; flex-direction: column; }
+.pro-head strong { font-family: var(--font-display); font-size: 1.2rem; }
+.svc-pick { margin-bottom: 16px; max-width: 360px; }
+input.readonly { background: var(--paper) !important; color: var(--ink-soft) !important; }
+
+/* ---- dashboard additions ---- */
+.inbox { background: #fff; border: 1.5px solid var(--green-tint); border-left: 5px solid var(--green-2); border-radius: var(--radius-sm); padding: 14px 18px; margin-bottom: 14px; }
+.inbox h2 { font-family: var(--font-body); font-size: 1rem; font-weight: 800; margin: 0 0 8px; letter-spacing: 0; }
+.inbox ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.inbox li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: .95rem; }
+.inbox .tag-new { font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; padding: 2px 8px; border-radius: 999px; background: var(--green-tint); color: var(--green-2); }
+.inbox .tag-cancelled { background: var(--coral-tint); color: var(--coral-dark); }
+.inbox .tag-rescheduled { background: var(--sun-tint); color: #8a5a00; }
+.inbox-foot { display: flex; justify-content: flex-end; margin-top: 8px; }
+.photo-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+.check-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px 16px; margin: 8px 0 0; }
+.check-grid label { display: flex; align-items: center; gap: 8px; font-weight: 600; padding: 6px 0; cursor: pointer; }
+.check-grid input { width: 18px; height: 18px; accent-color: var(--green-2); }
+.area-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.area-row strong { min-width: 180px; }
+.inline-input { min-height: 42px; padding: 6px 12px; border: 1.5px solid var(--line); border-radius: 8px; font: 600 .95rem var(--font-body); background: #fff; color: var(--ink); flex: 1 1 200px; }
