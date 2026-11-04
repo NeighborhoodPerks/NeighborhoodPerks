@@ -62,10 +62,10 @@ function footer() {
     <div class="footer-grid">
       <div>
         <a class="brand" href="/">${icons.mark}<span class="brand-name">Neighborhood <span>Perks</span></span></a>
-        <p>Vetted local pros for Carmel Valley, Torrey Highlands and the neighborhoods around them, booked together so everyone gets a better rate.</p>
-        <div class="socials">
-          <a href="${BIZ.facebook}" aria-label="Neighborhood Perks on Facebook" rel="noopener" target="_blank">${icons.facebook}</a>
-          <a href="${BIZ.instagram}" aria-label="Neighborhood Perks on Instagram" rel="noopener" target="_blank">${icons.instagram}</a>
+        <p>Local pros for Carmel Valley, Torrey Highlands and the neighborhoods next door, booked together so everyone pays less.</p>
+        <div class="footer-social">
+          <a href="${BIZ.facebook}" rel="noopener" target="_blank">Facebook</a>
+          <a href="${BIZ.instagram}" rel="noopener" target="_blank">Instagram</a>
         </div>
       </div>
       <div>
@@ -87,7 +87,7 @@ function footer() {
         </ul>
       </div>
       <div>
-        <h4>Get in touch</h4>
+        <h4>Contact</h4>
         <ul>
           <li><a href="${BIZ.phone_href}">${BIZ.phone}</a></li>
           <li><a href="mailto:${BIZ.email}">${BIZ.email}</a></li>
@@ -96,14 +96,11 @@ function footer() {
         </ul>
       </div>
     </div>
-    <div class="footer-bottom">
-      <span>© <span id="year">2026</span> Neighborhood Perks. All rights reserved.</span>
-      <span>Proudly local to San Diego</span>
-    </div>
+    <div class="footer-bottom">© <span id="year">2026</span> Neighborhood Perks, San Diego</div>
   </div>
 </footer>
 <div class="mobile-bar">
-  <a class="btn btn-ghost" href="${BIZ.phone_href}">${icons.phone} Call</a>
+  <a class="btn btn-secondary" href="${BIZ.phone_href}">Call or text</a>
   <a class="btn btn-primary" href="/book/">Book a service</a>
 </div>`;
 }
