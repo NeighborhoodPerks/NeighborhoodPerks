@@ -23,7 +23,7 @@ import {
   listAreas, findAreas, upsertArea, listPros, getProfile, updateProfile, setPhoto, removePhoto, getPhoto, inbox, markInboxSeen,
 } from "../../lib/pros.mjs";
 import { db } from "../../lib/db.mjs";
-import { sendEmail } from "../../lib/notify.mjs";
+import { sendEmail, normalizeFrom } from "../../lib/notify.mjs";
 
 const routes = [];
 const route = (method, pattern, handler) => {
@@ -330,7 +330,8 @@ route("POST", "/api/admin/email-test", async ({ req }) => {
   });
   return json({
     to: user.email,
-    from: (process.env.MAIL_FROM || "").trim() || null,
+    from: normalizeFrom(process.env.MAIL_FROM),
+    from_raw: (process.env.MAIL_FROM || "").trim() || null,
     reply_to: (process.env.MAIL_REPLY_TO || "").trim() || null,
     has_key: !!(process.env.RESEND_API_KEY || "").trim(),
     site_url: process.env.SITE_URL || null,

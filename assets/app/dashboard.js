@@ -743,7 +743,8 @@
     NP.api("POST", "/api/admin/email-test", {}).then(function (r) {
       var res = r.result || {};
       var rows = [
-        ["Sending to", r.to], ["From", r.from || "— not set (add MAIL_FROM in Netlify)"], ["Replies go to", r.reply_to || "— not set"],
+        ["Sending to", r.to], ["From (used)", r.from || "— no valid address"], ["MAIL_FROM as typed", r.from_raw || "— not set (add MAIL_FROM in Netlify)"],
+        ["Replies go to", r.reply_to || "— not set"],
         ["Resend key", r.has_key ? "set" : "— not set (add RESEND_API_KEY in Netlify)"], ["Site address", r.site_url || "— not set"],
       ].map(function (x) { return "<div><dt>" + esc(x[0]) + "</dt><dd>" + esc(x[1]) + "</dd></div>"; }).join("");
       var verdict = res.ok
