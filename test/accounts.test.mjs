@@ -160,6 +160,17 @@ test("declined providers can't sign in", async () => {
     password: "n-password-123", services: [], areas: ["carmel-valley"] } })).status, 400, "must pick a service");
 });
 
+test("admin email check reports exactly what's missing, and is admin-only", async () => {
+  const r = await call("POST", "/api/admin/email-test", { cookie: adminCookie, body: {} });
+  assert.equal(r.status, 200);
+  assert.equal(r.data.to, "boss@example.com");
+  assert.equal(r.data.result.skipped, true);
+  assert.deepEqual(r.data.result.missing, ["RESEND_API_KEY", "MAIL_FROM"]);
+  assert.equal(r.data.has_key, false);
+  const s = await call("POST", "/api/auth/login", { body: { email: "hana@example.com", password: "hana-password-1" } });
+  assert.equal((await call("POST", "/api/admin/email-test", { cookie: s.cookie, body: {} })).status, 403);
+});
+
 test("logout clears both cookies", async () => {
   const s = await call("POST", "/api/auth/login", { body: { email: "hana@example.com", password: "hana-password-1" } });
   const out = await call("POST", "/api/auth/logout", { cookie: s.cookie, body: {} });

@@ -736,6 +736,26 @@
     if (active && active !== "calendar" && active !== "vendors") tab(active);
   });
 
+  $('[data-act="email-test"]').addEventListener("click", function (e) {
+    var out = $('[data-bind="email-test"]');
+    e.target.disabled = true;
+    out.innerHTML = '<p class="muted">Sending…</p>';
+    NP.api("POST", "/api/admin/email-test", {}).then(function (r) {
+      var res = r.result || {};
+      var rows = [
+        ["Sending to", r.to], ["From", r.from || "— not set (add MAIL_FROM in Netlify)"], ["Replies go to", r.reply_to || "— not set"],
+        ["Resend key", r.has_key ? "set" : "— not set (add RESEND_API_KEY in Netlify)"], ["Site address", r.site_url || "— not set"],
+      ].map(function (x) { return "<div><dt>" + esc(x[0]) + "</dt><dd>" + esc(x[1]) + "</dd></div>"; }).join("");
+      var verdict = res.ok
+        ? '<p class="form-status ok" style="display:block">Sent! Check ' + esc(r.to) + " (and Spam). Resend ID: " + esc(res.id || "") + "</p>"
+        : res.skipped
+          ? '<p class="form-status err" style="display:block">Not sent: missing ' + esc((res.missing || []).join(" and ")) + ". Add it in Netlify, then redeploy.</p>"
+          : '<p class="form-status err" style="display:block">Resend refused it' + (res.status ? " (" + res.status + ")" : "") + ": " + esc(res.error || "unknown error") + "</p>";
+      out.innerHTML = verdict + '<dl class="facts mt-s">' + rows + "</dl>";
+    }, function (err) { out.innerHTML = '<p class="form-status err" style="display:block">' + esc(err.message) + "</p>"; })
+      .then(function () { e.target.disabled = false; });
+  });
+
   $('[data-act="signout"]').addEventListener("click", function () {
     NP.api("POST", "/api/auth/logout", {}).then(function () { location.reload(); }, function () { location.reload(); });
   });

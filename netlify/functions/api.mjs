@@ -23,6 +23,7 @@ import {
   listAreas, findAreas, upsertArea, listPros, getProfile, updateProfile, setPhoto, removePhoto, getPhoto, inbox, markInboxSeen,
 } from "../../lib/pros.mjs";
 import { db } from "../../lib/db.mjs";
+import { sendEmail } from "../../lib/notify.mjs";
 
 const routes = [];
 const route = (method, pattern, handler) => {
@@ -317,6 +318,24 @@ route("POST", "/api/admin/vendors/:id/decline", async ({ req, params }) => {
 route("POST", "/api/admin/vendors/:id/invite", async ({ req, params }) => {
   await requireUser(req, ["admin"]);
   return json(await vendorInvite(uuid(params.id)));
+});
+// Admin: send yourself a test email and see exactly what the email service said
+route("POST", "/api/admin/email-test", async ({ req }) => {
+  const user = await requireUser(req, ["admin"]);
+  await rateLimit(`emailtest:${user.id}`, 10, 3600);
+  const result = await sendEmail({
+    to: user.email,
+    subject: "Neighborhood Perks test email",
+    text: "If you're reading this, booking emails from Neighborhood Perks are working.\n\nSent from the admin dashboard.",
+  });
+  return json({
+    to: user.email,
+    from: (process.env.MAIL_FROM || "").trim() || null,
+    reply_to: (process.env.MAIL_REPLY_TO || "").trim() || null,
+    has_key: !!(process.env.RESEND_API_KEY || "").trim(),
+    site_url: process.env.SITE_URL || null,
+    result,
+  });
 });
 route("GET", "/api/admin/areas", async ({ req }) => {
   await requireUser(req, ["admin"]);
