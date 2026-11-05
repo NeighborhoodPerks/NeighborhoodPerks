@@ -399,3 +399,11 @@ p { margin: 0 0 1em; }
 .header-signin { font-weight: 700; color: var(--ink); text-decoration: none; font-size: .96rem; white-space: nowrap; padding: 8px 4px; }
 .header-signin:hover { color: var(--coral-dark); }
 @media (max-width: 880px) { .header-signin { display: none; } }
+
+/* Neighborhood cards (/areas/) and small "Learn more" links */
+.area-card { display: block; text-decoration: none; color: var(--ink); transition: transform .2s ease, box-shadow .2s ease; }
+.area-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); color: var(--ink); }
+.area-card h2 { font-size: 1.5rem; margin-bottom: .3em; }
+.area-go { display: inline-block; margin-top: 10px; font-weight: 700; color: var(--green-2); }
+.learn-more { display: inline-block; margin-top: 10px; font-weight: 700; font-size: .95rem; color: var(--green-2); }
+.service-body .learn-more { align-self: flex-start; }

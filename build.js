@@ -73,15 +73,16 @@ function footer() {
       <div>
         <h4>Services</h4>
         <ul>
-          <li><a href="/services/#window-rescreening">Window re-screening</a></li>
-          <li><a href="/services/#pet-walking">Pet walking</a></li>
-          <li><a href="/services/#pet-sitting">Pet sitting</a></li>
+          <li><a href="/services/window-rescreening/">Window re-screening</a></li>
+          <li><a href="/services/dog-walking/">Dog walking</a></li>
+          <li><a href="/services/pet-sitting/">Pet sitting</a></li>
           <li><a href="/services/#coming-soon">Coming soon</a></li>
         </ul>
       </div>
       <div>
         <h4>Company</h4>
         <ul>
+          <li><a href="/areas/">Neighborhoods we serve</a></li>
           <li><a href="/about/">About</a></li>
           <li><a href="/providers/">Become a provider</a></li>
           <li><a href="/book/">Book a service</a></li>
@@ -110,16 +111,32 @@ function footer() {
 </div>`;
 }
 
+// The service pages, used for the business's offer catalog and each page's Service data
+const SERVICES = [
+  { name: "Window re-screening", path: "/services/window-rescreening/" },
+  { name: "Dog walking", path: "/services/dog-walking/" },
+  { name: "Pet sitting", path: "/services/pet-sitting/" },
+];
+const AREAS = ["Carmel Valley", "Torrey Highlands", "Pacific Highlands Ranch", "Del Mar Mesa", "Torrey Hills", "Rancho Peñasquitos"];
+const areaServed = AREAS.map((n) => ({ "@type": "Place", name: n + ", San Diego, CA" }));
+
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "HomeAndConstructionBusiness",
+  "@id": SITE + "/#business",
   name: BIZ.name,
+  logo: SITE + "/assets/logo.png",
   url: SITE + "/",
   telephone: "+1-619-736-3618",
   email: BIZ.email,
   image: SITE + "/assets/og.png",
   address: { "@type": "PostalAddress", addressLocality: "San Diego", addressRegion: "CA", addressCountry: "US" },
-  areaServed: ["Carmel Valley", "Torrey Highlands", "Pacific Highlands Ranch", "Del Mar Mesa", "Torrey Hills"].map((n) => ({ "@type": "Place", name: n + ", San Diego, CA" })),
+  areaServed,
+  hasOfferCatalog: {
+    "@type": "OfferCatalog",
+    name: "Home services",
+    itemListElement: SERVICES.map((sv) => ({ "@type": "Offer", itemOffered: { "@type": "Service", name: sv.name, url: SITE + sv.path } })),
+  },
   openingHoursSpecification: [
     { "@type": "OpeningHoursSpecification", dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], opens: "08:00", closes: "19:00" },
     { "@type": "OpeningHoursSpecification", dayOfWeek: "Sunday", opens: "08:00", closes: "17:00" },
@@ -127,11 +144,42 @@ const jsonLd = {
   sameAs: [BIZ.facebook, BIZ.instagram],
 };
 
+const stripTags = (h) => h.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").replace(/&amp;/g, "&").trim();
+
+/** Search-engine data for a page: business (home), service, breadcrumbs, and FAQs read from the page itself. */
+function structuredData(meta, body) {
+  const out = [];
+  if (meta.noindex) return out;
+  if (meta.path === "/") out.push(jsonLd);
+  if (meta.service) {
+    out.push({
+      "@context": "https://schema.org", "@type": "Service", name: meta.service.name, serviceType: meta.service.type || meta.service.name,
+      description: meta.description, url: SITE + meta.path, areaServed, provider: { "@id": SITE + "/#business" },
+    });
+  }
+  if (meta.path !== "/") {
+    const crumbs = meta.crumbs || [["Home", "/"], [meta.crumb || meta.title, meta.path]];
+    out.push({
+      "@context": "https://schema.org", "@type": "BreadcrumbList",
+      itemListElement: crumbs.map(([name, p], i) => ({ "@type": "ListItem", position: i + 1, name, item: SITE + p })),
+    });
+  }
+  // FAQs come straight from the <details><summary> blocks on the page, so the two can never disagree
+  const faqs = [...body.matchAll(/<details>\s*<summary>([\s\S]*?)<\/summary>\s*<p>([\s\S]*?)<\/p>\s*<\/details>/g)];
+  if (faqs.length) {
+    out.push({
+      "@context": "https://schema.org", "@type": "FAQPage",
+      mainEntity: faqs.map(([, q, a]) => ({ "@type": "Question", name: stripTags(q), acceptedAnswer: { "@type": "Answer", text: stripTags(a) } })),
+    });
+  }
+  return out;
+}
+
 function page(meta, body) {
   const url = SITE + meta.path;
   const title = meta.path === "/" ? meta.title : `${meta.title} | Neighborhood Perks`;
   const robots = meta.noindex ? '\n<meta name="robots" content="noindex">' : "";
-  const ld = meta.path === "/" ? `\n<script type="application/ld+json">${JSON.stringify(jsonLd)}</script>` : "";
+  const ld = structuredData(meta, body).map((o) => `\n<script type="application/ld+json">${JSON.stringify(o)}</script>`).join("");
   return `<!doctype html>
 <html lang="en" class="no-js">
 <head>
@@ -146,7 +194,7 @@ function page(meta, body) {
 <meta property="og:title" content="${title}">
 <meta property="og:description" content="${meta.description}">
 <meta property="og:url" content="${url}">
-<meta property="og:image" content="${SITE}/assets/og.png">
+<meta property="og:image" content="${SITE}${meta.og || "/assets/og.png"}">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
@@ -211,8 +259,11 @@ for (const file of fs.readdirSync(path.join(SRC, "pages")).sort()) {
   console.log("built", path.relative(ROOT, dest));
 }
 
+const today = new Date().toISOString().slice(0, 10);
 fs.writeFileSync(path.join(OUT, "sitemap.xml"),
   `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
-  urls.map((u) => `  <url><loc>${SITE}${u}</loc></url>`).join("\n") + `\n</urlset>\n`);
-fs.writeFileSync(path.join(OUT, "robots.txt"), `User-agent: *\nAllow: /\n\nSitemap: ${SITE}/sitemap.xml\n`);
+  urls.map((u) => `  <url><loc>${SITE}${u}</loc><lastmod>${today}</lastmod></url>`).join("\n") + `\n</urlset>\n`);
+// Private and app pages are noindex too; this also keeps crawlers out of the API
+fs.writeFileSync(path.join(OUT, "robots.txt"),
+  `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /vendor/\nDisallow: /account/\nDisallow: /booking/\nDisallow: /signin/\n\nSitemap: ${SITE}/sitemap.xml\n`);
 console.log("built sitemap.xml, robots.txt");
