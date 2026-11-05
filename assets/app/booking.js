@@ -237,6 +237,43 @@
       (state.service.price_cents != null ? '<span class="muted">From ' + NP.money(state.service.price_cents) + ", final price confirmed by your pro</span>" : "");
   }
 
+  // --- payments: card saved now, charged after the job ------------------------------------
+  var pay = { on: false, stripe: null, elements: null, setupIntentId: null };
+  NP.config().then(function (c) {
+    if (!c.payments) return;
+    pay.on = true;
+    $("[data-pay]").hidden = false;
+    $('[data-bind="charge-note"]').textContent = "Your card isn't charged until the job is done.";
+    return NP.stripeJs().then(function (stripe) {
+      if (!stripe) return;
+      pay.stripe = stripe;
+      pay.elements = stripe.elements({ mode: "setup", currency: "usd", paymentMethodTypes: ["card"], appearance: NP.stripeAppearance });
+      pay.elements.create("payment", { fields: { billingDetails: { email: "never" } } }).mount($("[data-pay-element]"));
+    });
+  }).catch(function (err) {
+    $("[data-pay-element]").innerHTML = '<p class="form-status err" style="display:block">' + esc(err.message) + "</p>";
+  });
+
+  /** Saves the card once (reused if the customer has to pick another time). Resolves to the SetupIntent id. */
+  function saveCard(f) {
+    if (!pay.on) return Promise.resolve(null);
+    if (pay.setupIntentId) return Promise.resolve(pay.setupIntentId);
+    if (!pay.stripe || !pay.elements) return Promise.reject(new Error("The card form is still loading. Please try again in a moment."));
+    return pay.elements.submit().then(function (r) {
+      if (r.error) throw new Error(r.error.message);
+      return NP.api("POST", "/api/payments/setup", { email: f.email.value, name: f.name.value, phone: f.phone.value });
+    }).then(function (setup) {
+      return pay.stripe.confirmSetup({
+        elements: pay.elements, clientSecret: setup.clientSecret, redirect: "if_required",
+        confirmParams: { return_url: location.href, payment_method_data: { billing_details: { email: f.email.value } } },
+      });
+    }).then(function (r) {
+      if (r.error) throw new Error(r.error.message);
+      pay.setupIntentId = r.setupIntent.id;
+      return pay.setupIntentId;
+    });
+  }
+
   // --- 4. details --------------------------------------------------------------------------
   var form = root.querySelector('form[data-step="details"]');
   var status = form.querySelector(".form-status");
@@ -273,8 +310,12 @@
     var btn = form.querySelector('button[type="submit"]');
     btn.disabled = true;
     var label = btn.innerHTML;
-    btn.textContent = "Booking…";
-    NP.api("POST", "/api/bookings", body).then(function (res) {
+    btn.textContent = pay.on && !pay.setupIntentId ? "Saving card…" : "Booking…";
+    saveCard(form.elements).then(function (setupIntent) {
+      if (setupIntent) body.setup_intent = setupIntent;
+      btn.textContent = "Booking…";
+      return NP.api("POST", "/api/bookings", body);
+    }).then(function (res) {
       try { localStorage.setItem("np-contact", JSON.stringify({ name: body.name, phone: body.phone, email: body.email, address: body.address })); } catch (e) {}
       var link = location.origin + "/booking/?t=" + encodeURIComponent(res.manageToken);
       var b = res.booking;

@@ -153,5 +153,55 @@
     };
   }
 
-  window.NP = { api: api, dateKey: dateKey, time: time, dayLong: dayLong, when: when, money: money, esc: esc, todayLocal: todayLocal, DatePicker: DatePicker, renderSlots: renderSlots, TZ: TZ };
+  // --- payments ---------------------------------------------------------------
+  var configP = null;
+  function config() {
+    return configP || (configP = api("GET", "/api/config").catch(function () { return { payments: false }; }));
+  }
+  var stripeP = null;
+  /** Stripe.js, loaded only when payments are on. Resolves to the Stripe instance (or null). */
+  function stripeJs() {
+    if (stripeP) return stripeP;
+    stripeP = config().then(function (c) {
+      if (!c.payments || !c.publishableKey) return null;
+      return new Promise(function (resolve, reject) {
+        if (window.Stripe) return resolve(window.Stripe(c.publishableKey));
+        var s = document.createElement("script");
+        s.src = "https://js.stripe.com/v3/";
+        s.onload = function () { resolve(window.Stripe(c.publishableKey)); };
+        s.onerror = function () { reject(new Error("Couldn't load the secure card form. Check your connection and try again.")); };
+        document.head.appendChild(s);
+      });
+    });
+    return stripeP;
+  }
+  var stripeAppearance = {
+    theme: "stripe",
+    variables: { colorPrimary: "#1f4d36", colorText: "#17261d", colorDanger: "#c24c28", fontFamily: "Figtree, system-ui, sans-serif", borderRadius: "10px" },
+  };
+  /**
+   * Pay an amount that's due (after a declined card): mounts a card form in `box`, confirms with Stripe,
+   * then calls `done()` so the server can check with Stripe directly.
+   */
+  function payNow(box, clientSecret, amountCents, done) {
+    return stripeJs().then(function (stripe) {
+      if (!stripe) throw new Error("Payments aren't available right now. Please call us.");
+      var elements = stripe.elements({ clientSecret: clientSecret, appearance: stripeAppearance });
+      box.innerHTML = '<div class="pay-element"></div><div class="form-foot"><button type="button" class="btn btn-primary">Pay ' + money(amountCents) + '</button><span class="muted pay-secure">Secured by Stripe</span></div><div class="form-status" role="alert"></div>';
+      elements.create("payment").mount(box.querySelector(".pay-element"));
+      var btn = box.querySelector("button");
+      var st = box.querySelector(".form-status");
+      btn.onclick = function () {
+        btn.disabled = true;
+        btn.textContent = "Paying…";
+        stripe.confirmPayment({ elements: elements, confirmParams: { return_url: location.href }, redirect: "if_required" }).then(function (r) {
+          if (r.error) { st.className = "form-status err"; st.textContent = r.error.message; btn.disabled = false; btn.textContent = "Pay " + money(amountCents); return; }
+          return done();
+        });
+      };
+    });
+  }
+  var PAY_LABEL = { card_saved: "Card on file", processing: "Payment processing", paid: "Paid", failed: "Payment needed", refunded: "Refunded", partially_refunded: "Partly refunded" };
+
+  window.NP = { api: api, config: config, stripeJs: stripeJs, stripeAppearance: stripeAppearance, payNow: payNow, PAY_LABEL: PAY_LABEL, dateKey: dateKey, time: time, dayLong: dayLong, when: when, money: money, esc: esc, todayLocal: todayLocal, DatePicker: DatePicker, renderSlots: renderSlots, TZ: TZ };
 })();

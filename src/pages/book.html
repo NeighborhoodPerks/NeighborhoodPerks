@@ -86,9 +86,15 @@
           </div>
           <div class="field full"><label for="d-notes">Anything we should know? <span class="hint">(optional)</span></label><textarea id="d-notes" name="notes" maxlength="2000" placeholder="How many screens? Your pet's name and routine? Gate code? Neighbors booking too?"></textarea></div>
         </div>
+        <div class="pay-box" data-pay hidden>
+          <h3>Card on file</h3>
+          <p class="muted">You're only charged <strong>after the job is done</strong>, for the final price your pro confirms. Cancel before your appointment and you pay nothing.</p>
+          <div class="pay-element" data-pay-element></div>
+          <p class="muted pay-secure">Secured by Stripe. We never see or store your card number.</p>
+        </div>
         <div class="form-foot">
           <button class="btn btn-primary" type="submit">Confirm booking {{icon:arrow}}</button>
-          <p>Nothing is charged online.</p>
+          <p data-bind="charge-note">Nothing is charged online.</p>
         </div>
         <div class="form-status" role="alert"></div>
       </form>

@@ -263,3 +263,14 @@ input.readonly { background: var(--paper) !important; color: var(--ink-soft) !im
 .tag-pending { background: var(--sun-tint); color: #8a5a00; }
 .tag-declined { background: #eee7dc; color: var(--ink-soft); }
 .vendor-card.is-pending { border: 2px solid #f1dca4; background: #fffcf3; }
+
+/* ---- payments ---- */
+.pay-box { margin-top: 18px; padding: 18px; border-radius: var(--radius-sm); border: 1.5px solid var(--line); background: #fffdf9; }
+.pay-box h3 { font-size: 1.15rem; margin-bottom: .3em; }
+.pay-element { margin: 12px 0 6px; min-height: 44px; }
+.pay-secure { font-size: .85rem; margin: 6px 0 0; }
+.pay-due { margin-top: 18px; padding: 18px; border-radius: var(--radius-sm); background: var(--coral-tint); border: 1px solid #f3cdbd; }
+.pay-due .pay-element { background: #fff; padding: 12px; border-radius: 10px; }
+.pay-line { margin: 10px 0 0; font-size: .92rem; font-weight: 600; color: var(--ink-soft); display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.pay-line.pay-paid { color: var(--green-2); }
+.pay-line.pay-failed { color: var(--coral-dark); }

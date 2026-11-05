@@ -24,6 +24,10 @@ import {
 } from "../../lib/pros.mjs";
 import { db } from "../../lib/db.mjs";
 import { sendEmail, normalizeFrom } from "../../lib/notify.mjs";
+import {
+  paymentsEnabled, publicConfig, createSetupIntent, confirmedCard, attachCardToBooking, chargeBooking, payNowSecret, syncPayment,
+  refundBooking, payoutStatus, onboardingLink, refreshAccount, stripeDashboardLink, handleWebhook, paymentsSummary,
+} from "../../lib/payments.mjs";
 
 const routes = [];
 const route = (method, pattern, handler) => {
@@ -97,7 +101,11 @@ route("POST", "/api/bookings", async ({ req, body }) => {
     neighborhood: str(body.neighborhood, "Neighborhood", { optional: true, max: 80 }),
     notes: str(body.notes, "Notes", { optional: true, max: 2000 }),
   };
-  const { booking, manageToken } = await createBooking(input);
+  const card = paymentsEnabled() ? await confirmedCard(body.setup_intent) : null;
+  const created = await createBooking(input);
+  const manageToken = created.manageToken;
+  let booking = created.booking;
+  if (card) { await attachCardToBooking(booking.id, card); booking = await bookingView(booking.id); }
   // Signed in as a homeowner → it's theirs. Otherwise, if a *verified* account owns this email, it's theirs too.
   const me = await currentUser(req);
   const [owner] = me && me.role === "customer" ? [{ id: me.id }]
@@ -111,9 +119,19 @@ const publicBooking = (b) => ({
   customer_name: b.customer_name, address: b.address, neighborhood: b.neighborhood, notes: b.notes,
   price_cents: b.price_cents, vendor_first_name: (b.vendor_name || "").split(" ")[0], timezone: b.timezone,
   vendor_id: b.vendor_id, vendor_business: b.vendor_business,
+  payment_status: b.payment_status, amount_charged_cents: b.amount_charged_cents, amount_refunded_cents: b.amount_refunded_cents,
   vendor_photo_url: b.vendor_photo_version ? `/api/pros/${b.vendor_id}/photo?v=${b.vendor_photo_version}` : null,
 });
 
+route("GET", "/api/config", async () => json(publicConfig()));
+route("POST", "/api/payments/setup", async ({ req, body }) => {
+  await rateLimit(`setup:${clientIp(req)}`, 30, 3600);
+  const me = await currentUser(req);
+  const user = me && me.role === "customer" ? await db().query(`SELECT id, stripe_customer_id FROM users WHERE id = $1`, [me.id]).then((r) => r[0]) : null;
+  return json(await createSetupIntent({ email: email(body.email), name: str(body.name, "Name", { max: 120 }), phone: body.phone ? phone(body.phone) : null, user }));
+});
+route("POST", "/api/booking/pay", async ({ body }) => json(await payNowSecret(await bookingIdByToken(body.t))));
+route("POST", "/api/booking/pay/done", async ({ body }) => json(await syncPayment(await bookingIdByToken(body.t))));
 route("GET", "/api/areas", async () => json({ areas: (await listAreas()).map(({ slug, name, zips }) => ({ slug, name, zips })) }));
 route("GET", "/api/areas/find", async ({ url }) => json({ areas: await findAreas(url.searchParams.get("q")) }));
 route("GET", "/api/pros", async ({ url }) => {
@@ -185,6 +203,18 @@ route("POST", "/api/account/bookings/:id/cancel", async ({ req, params, body }) 
   await assertCustomerBooking(user, id);
   return json({ booking: publicBooking(await cancelBooking(id, { actor: "customer", reason: str(body.reason, "Reason", { optional: true, max: 500 }) })) });
 });
+route("POST", "/api/account/bookings/:id/pay", async ({ req, params }) => {
+  const user = await requireUser(req, ["customer"]);
+  const id = uuid(params.id);
+  await assertCustomerBooking(user, id);
+  return json(await payNowSecret(id));
+});
+route("POST", "/api/account/bookings/:id/pay/done", async ({ req, params }) => {
+  const user = await requireUser(req, ["customer"]);
+  const id = uuid(params.id);
+  await assertCustomerBooking(user, id);
+  return json(await syncPayment(id));
+});
 route("POST", "/api/account/bookings/:id/reschedule", async ({ req, params, body }) => {
   const user = await requireUser(req, ["customer"]);
   const id = uuid(params.id);
@@ -233,8 +263,45 @@ route("POST", "/api/bookings/:id/status", async ({ req, params, body }) => {
   const user = await requireUser(req, ["vendor", "admin"]);
   const id = uuid(params.id);
   await assertBookingAccess(user, id);
-  return json({ booking: await setBookingStatus(id, body.status, { actor: `${user.role}:${user.email}` }) });
+  const actor = `${user.role}:${user.email}`;
+  let charge = null;
+  if (body.status === "completed" && paymentsEnabled()) {
+    const current = await bookingView(id);
+    if (current.payment_status === "card_saved") {
+      const cents = Math.round(Number(body.amount) * 100);
+      charge = await chargeBooking(id, cents, { actor });
+    }
+  }
+  return json({ booking: await setBookingStatus(id, body.status, { actor }), charge });
 });
+route("POST", "/api/admin/bookings/:id/refund", async ({ req, params, body }) => {
+  const user = await requireUser(req, ["admin"]);
+  const cents = body.amount === undefined || body.amount === null || body.amount === "" ? null : Math.round(Number(body.amount) * 100);
+  return json(await refundBooking(uuid(params.id), cents, { actor: `admin:${user.email}` }));
+});
+route("GET", "/api/admin/payments", async ({ req }) => {
+  await requireUser(req, ["admin"]);
+  return json({ enabled: paymentsEnabled(), ...(paymentsEnabled() ? await paymentsSummary() : {}) });
+});
+
+// --- provider payouts ------------------------------------------------------------------
+route("GET", "/api/my/payouts", async ({ req, url }) => {
+  const user = await requireUser(req, ["vendor", "admin"]);
+  const vendorId = scopeVendor(user, url);
+  const st = await payoutStatus(vendorId);
+  // Refresh from Stripe when returning from onboarding or when not ready yet
+  if (st.enabled && st.connected && (!st.ready || url.searchParams.get("refresh"))) return json(await refreshAccount(vendorId));
+  return json(st);
+});
+route("POST", "/api/my/payouts/onboard", async ({ req, url }) => {
+  const user = await requireUser(req, ["vendor", "admin"]);
+  return json(await onboardingLink(scopeVendor(user, url)));
+});
+route("POST", "/api/my/payouts/dashboard", async ({ req, url }) => {
+  const user = await requireUser(req, ["vendor", "admin"]);
+  return json(await stripeDashboardLink(scopeVendor(user, url)));
+});
+route("POST", "/api/stripe/webhook", async ({ req, raw }) => json(await handleWebhook(raw, req.headers.get("stripe-signature") || "")));
 
 route("GET", "/api/hours", async ({ req, url }) => {
   const user = await requireUser(req, ["vendor", "admin"]);
@@ -374,14 +441,18 @@ export async function handle(req) {
     const r = candidates.find((c) => c.method === req.method);
     if (!r) return json({ error: "Method not allowed", code: "method" }, 405, { allow: candidates.map((c) => c.method).join(", ") });
     let body = {};
-    if (req.method !== "GET") {
+    let raw = null;
+    if (url.pathname === "/api/stripe/webhook") {
+      raw = await req.text();
+      if (raw.length > 512_000) throw bad("Request too large.");
+    } else if (req.method !== "GET") {
       // Browsers can't send JSON cross-site without a CORS preflight, which we never allow: CSRF protection
       if (!(req.headers.get("content-type") || "").includes("application/json")) throw bad("Send JSON.", "content_type");
       body = await readJson(req, url.pathname === "/api/my/photo" ? 900_000 : 20_000);
     }
     const m = url.pathname.match(r.re);
     const params = Object.fromEntries(r.keys.map((k, i) => [k, decodeURIComponent(m[i + 1])]));
-    return await r.handler({ req, url, params, body });
+    return await r.handler({ req, url, params, body, raw });
   } catch (err) {
     if (err instanceof HttpError) return json({ error: err.message, code: err.code }, err.status);
     if (/No database configured/.test(err.message || "")) {

@@ -13,6 +13,7 @@
   var vendors = [];
   var allServices = [];
   var allAreas = [];
+  var payCfg = { payments: false, feePercent: 15 };
   var DAYS = ["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
   function view(name) { $$("[data-view]").forEach(function (el) { el.hidden = el.getAttribute("data-view") !== name; }); }
@@ -77,10 +78,20 @@
     $$("[data-admin]").forEach(function (el) { el.hidden = !isAdmin(); });
     if (isAdmin()) loadVendors();
     $("[data-pending]").hidden = me.vendor_status !== "pending";
+    NP.config().then(function (c) {
+      payCfg = c;
+      $$("[data-payments]").forEach(function (el) { el.hidden = !c.payments; });
+      $('[data-bind="keep-pct"]').textContent = (100 - c.feePercent) + "%";
+      if (c.payments && me.role === "vendor") {
+        NP.api("GET", "/api/my/payouts").then(function (st) { $("[data-payout-banner]").hidden = st.ready || me.vendor_status === "pending"; }, function () {});
+      }
+      if (c.payments && isAdmin()) loadPaySummary();
+    });
     initCalendar();
     loadInbox();
-    var welcome = new URLSearchParams(location.search).get("welcome");
-    tab(me.vendor_status === "pending" && welcome ? "profile" : "calendar");
+    var qs = new URLSearchParams(location.search);
+    var welcome = qs.get("welcome");
+    tab(qs.get("tab") === "payouts" ? "payouts" : me.vendor_status === "pending" && welcome ? "profile" : "calendar");
   }
 
   // --- tabs --------------------------------------------------------------------------
@@ -92,10 +103,14 @@
     if (name === "profile") loadProfile();
     if (name === "services") loadServices();
     if (name === "sync") loadIcs();
+    if (name === "payouts") loadPayouts();
     if (name === "vendors") loadVendors();
   }
   $$("[data-tab]").forEach(function (b) { b.addEventListener("click", function () { tab(b.getAttribute("data-tab")); }); });
-  root.addEventListener("click", function (e) { if (e.target.closest("[data-goto-providers]")) tab("vendors"); });
+  root.addEventListener("click", function (e) {
+    if (e.target.closest("[data-goto-providers]")) tab("vendors");
+    if (e.target.closest("[data-goto-payouts]")) tab("payouts");
+  });
 
   // --- calendar ---------------------------------------------------------------------
   var COLORS = { confirmed: "#2c6a4b", completed: "#8aa596", cancelled: "#c9bfb0", no_show: "#c24c28" };
@@ -220,6 +235,9 @@
         '<div><dt>Address</dt><dd><a href="' + maps + '" target="_blank" rel="noopener">' + esc(b.address) + "</a>" + (b.neighborhood ? " · " + esc(b.neighborhood) : "") + "</dd></div>" +
         (b.notes ? "<div><dt>Notes</dt><dd>" + esc(b.notes) + "</dd></div>" : "") +
         (b.price_cents != null ? "<div><dt>Price</dt><dd>From " + NP.money(b.price_cents) + "</dd></div>" : "") +
+        (b.payment_status && b.payment_status !== "none" ? "<div><dt>Payment</dt><dd>" + esc(NP.PAY_LABEL[b.payment_status]) +
+          (b.amount_charged_cents ? ": " + NP.money(b.amount_charged_cents) + (b.platform_fee_cents != null ? ' <span class="muted">(fee ' + NP.money(b.platform_fee_cents) + ", provider " + NP.money(b.amount_charged_cents - b.platform_fee_cents) + ")</span>" : "") : "") +
+          (b.amount_refunded_cents ? " · refunded " + NP.money(b.amount_refunded_cents) : "") + "</dd></div>" : "") +
         (isAdmin() ? "<div><dt>Provider</dt><dd>" + esc(b.vendor_name) + "</dd></div>" : "") +
         (b.cancel_reason ? "<div><dt>Cancel reason</dt><dd>" + esc(b.cancel_reason) + "</dd></div>" : "") +
         "</dl>" +
@@ -227,6 +245,7 @@
         (upcoming ? '<button class="btn btn-dark btn-sm" data-sa="move">Move</button>' : "") +
         (b.status === "confirmed" && started ? '<button class="btn btn-dark btn-sm" data-sa="completed">Mark done</button><button class="btn btn-ghost btn-sm" data-sa="no_show">No-show</button>' : "") +
         (b.status === "confirmed" ? '<button class="btn btn-ghost btn-sm danger" data-sa="cancel">Cancel booking</button>' : "") +
+        (isAdmin() && (b.payment_status === "paid" || b.payment_status === "partially_refunded") ? '<button class="btn btn-ghost btn-sm" data-sa="refund">Refund</button>' : "") +
         "</div>" +
         '<div data-sa-panel></div>' +
         '<details class="history"><summary>History</summary><ul>' + history + "</ul></details>"
@@ -250,6 +269,48 @@
               closeSheet(); cal.refetchEvents(); toast("Booking cancelled. The customer has been emailed.");
             }, function (err) { toast(err.message, true); });
           };
+        }
+        if (a === "completed" && payCfg.payments && b.payment_status === "card_saved") {
+          var keep = 100 - payCfg.feePercent;
+          var start = b.price_cents != null ? (b.price_cents / 100).toFixed(2) : "";
+          panel.innerHTML = '<div class="confirm-box"><p><strong>Charge for this job</strong></p>' +
+            '<div class="field"><label for="ch-amt">Final price ($)</label><input id="ch-amt" inputmode="decimal" value="' + start + '"></div>' +
+            '<p class="muted mt-s" data-split></p>' +
+            '<div class="btn-row mt-s"><button class="btn btn-primary btn-sm" data-yes>Mark done &amp; charge</button><button class="btn btn-ghost btn-sm" data-no>Not yet</button></div></div>';
+          var amt = $("#ch-amt", panel);
+          var split = function () {
+            var v = Number(String(amt.value).replace(/[$,\s]/g, ""));
+            $("[data-split]", panel).textContent = v > 0
+              ? "The customer's card is charged " + NP.money(Math.round(v * 100)) + ". " + (isAdmin() ? "The provider gets " : "You get ") + NP.money(Math.round(v * keep)) + " after the " + payCfg.feePercent + "% fee."
+              : "Enter the final price for the job.";
+          };
+          amt.oninput = split; split();
+          $("[data-no]", panel).onclick = function () { panel.innerHTML = ""; };
+          $("[data-yes]", panel).onclick = function () {
+            var v = Number(String(amt.value).replace(/[$,\s]/g, ""));
+            if (!(v >= 0.5)) return toast("Enter the final price, at least $0.50.", true);
+            this.disabled = true;
+            NP.api("POST", "/api/bookings/" + b.id + "/status", { status: "completed", amount: v }).then(function (r) {
+              closeSheet(); cal.refetchEvents();
+              toast(r.charge && r.charge.status === "failed" ? r.charge.message : "Done! The customer was charged " + NP.money(Math.round(v * 100)) + ".", r.charge && r.charge.status === "failed");
+            }, function (err) { toast(err.message, true); });
+          };
+          return;
+        }
+        if (a === "refund") {
+          var left = (b.amount_charged_cents - (b.amount_refunded_cents || 0)) / 100;
+          panel.innerHTML = '<div class="confirm-box"><p><strong>Refund the customer</strong></p>' +
+            '<div class="field"><label for="rf-amt">Amount ($) <span class="hint">(up to ' + NP.money(Math.round(left * 100)) + ")</span></label><input id=\"rf-amt\" inputmode=\"decimal\" value=\"" + left.toFixed(2) + '"></div>' +
+            '<p class="muted mt-s">It comes back out of the provider\'s share, and our fee is returned in proportion.</p>' +
+            '<div class="btn-row mt-s"><button class="btn btn-primary btn-sm" data-yes>Refund</button><button class="btn btn-ghost btn-sm" data-no>Cancel</button></div></div>';
+          $("[data-no]", panel).onclick = function () { panel.innerHTML = ""; };
+          $("[data-yes]", panel).onclick = function () {
+            this.disabled = true;
+            NP.api("POST", "/api/admin/bookings/" + b.id + "/refund", { amount: Number($("#rf-amt", panel).value) }).then(function (r) {
+              closeSheet(); toast("Refunded " + NP.money(r.refunded) + ". The customer has been emailed."); if (isAdmin()) loadPaySummary();
+            }, function (err) { toast(err.message, true); });
+          };
+          return;
         }
         if (a === "completed" || a === "no_show") {
           NP.api("POST", "/api/bookings/" + b.id + "/status", { status: a }).then(function () {
@@ -531,7 +592,8 @@
         '<div class="muted">' + esc(v.email) + (v.phone ? " · " + esc(v.phone) : "") + "</div>" +
         '<div class="muted" style="font-size:.9rem;margin-top:4px">' + (v.areas && v.areas.length ? esc(v.areas.map(areaName).join(", ")) : "No neighborhoods yet") + "</div>" +
         '<div class="vendor-svcs">' + (v.services.length ? v.services.map(function (s) { return '<span class="chip-sm">' + esc(s.name) + (s.active ? "" : " (off)") + "</span>"; }).join("") : '<span class="muted">No services</span>') + "</div>" +
-        (v.has_password ? "" : '<div class="warn-sm">Hasn\'t set a password yet</div>') + "</div>" +
+        (v.has_password ? "" : '<div class="warn-sm">Hasn\'t set a password yet</div>') +
+        (payCfg.payments ? (v.payouts_ready ? '<div class="chip-sm" style="display:inline-block;margin-top:8px">Payouts ✓</div>' : '<div class="warn-sm">Payouts not set up: not bookable yet</div>') : "") + "</div>" +
         '<div class="vendor-actions"><button class="btn btn-ghost btn-sm" data-v-cal="' + v.id + '">Calendar</button>' +
         '<button class="btn btn-ghost btn-sm" data-v-invite="' + v.id + '">' + (v.has_password ? "Reset link" : "Sign-in link") + "</button>" +
         (v.status === "approved"
@@ -706,6 +768,43 @@
   $('[data-act="remove-photo"]').addEventListener("click", function () {
     NP.api("DELETE", "/api/my/photo" + scope(), {}).then(function (res) { renderProfile(res.profile); toast("Photo removed."); }, function (err) { toast(err.message, true); });
   });
+
+  // --- payouts ------------------------------------------------------------------------------
+  function loadPayouts() {
+    var s = scope();
+    var box = $('[data-bind="payouts"]');
+    if (s === null) { box.innerHTML = '<p class="muted">Choose a provider at the top to see their payouts.</p>'; return; }
+    var refresh = new URLSearchParams(location.search).get("stripe") ? (s ? "&" : "?") + "refresh=1" : "";
+    NP.api("GET", "/api/my/payouts" + s + refresh).then(function (st) {
+      if (!st.enabled) { box.innerHTML = '<p class="muted">Online payments aren\'t switched on yet.</p>'; return; }
+      if (st.ready) {
+        box.innerHTML = '<p class="form-status ok" style="display:block">Payouts are on. Homeowners can book you, and you\'re paid automatically when you mark a job done.</p>' +
+          '<div class="btn-row mt-s"><button type="button" class="btn btn-dark btn-sm" data-po="dashboard">Open my Stripe dashboard</button></div>' +
+          '<p class="muted mt-s" style="font-size:.9rem">See your balance, payouts and bank details on Stripe.</p>';
+      } else {
+        box.innerHTML = '<p>' + (st.connected ? "You've started setting up payouts with Stripe, but it isn't finished yet." : "Stripe handles your payouts securely. It takes about 5 minutes: your details, then the bank account to pay you.") + "</p>" +
+          '<div class="btn-row mt-s"><button type="button" class="btn btn-primary" data-po="onboard">' + (st.connected ? "Finish setting up payouts" : "Set up payouts with Stripe") + "</button></div>";
+      }
+      if ($("[data-payout-banner]")) $("[data-payout-banner]").hidden = st.ready || me.role !== "vendor" || me.vendor_status === "pending";
+    }, function (err) { box.innerHTML = '<p class="form-status err" style="display:block">' + esc(err.message) + "</p>"; });
+  }
+  $('[data-panel="payouts"]').addEventListener("click", function (e) {
+    var b = e.target.closest("[data-po]");
+    if (!b) return;
+    b.disabled = true;
+    var path = b.getAttribute("data-po") === "onboard" ? "/api/my/payouts/onboard" : "/api/my/payouts/dashboard";
+    NP.api("POST", path + (scope() || ""), {}).then(function (r) { location.href = r.url; }, function (err) { toast(err.message, true); b.disabled = false; });
+  });
+  function loadPaySummary() {
+    NP.api("GET", "/api/admin/payments").then(function (p) {
+      if (!p.enabled) return;
+      $('[data-bind="pay-summary"]').innerHTML = '<dl class="facts">' + [
+        ["Month", p.month], ["Jobs paid", p.paid_jobs], ["Customers paid", NP.money(p.gross)],
+        ["Neighborhood Perks earned (" + p.feePercent + "%)", NP.money(p.fees)], ["Refunded", NP.money(p.refunded)], ["Declined cards waiting", p.failed],
+      ].map(function (x) { return "<div><dt>" + esc(x[0]) + "</dt><dd>" + esc(x[1]) + "</dd></div>"; }).join("") + "</dl>" +
+        '<p class="muted mt-s" style="font-size:.9rem">Stripe\'s card processing fee comes out of your share. Full details are in your Stripe dashboard.</p>';
+    }, function () {});
+  }
 
   // --- what's new --------------------------------------------------------------------------
   var INBOX_LABEL = { created: "New booking", rescheduled: "Moved", cancelled: "Cancelled" };

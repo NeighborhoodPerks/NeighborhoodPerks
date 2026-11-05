@@ -24,6 +24,12 @@
           <button type="button" class="btn btn-ghost" data-act="cancel">Cancel booking</button>
         </div>
 
+        <div class="pay-due" data-box="pay" hidden>
+          <h2 class="bk-title">Payment needed</h2>
+          <p>Your card was declined for this booking. Please pay with another card.</p>
+          <div data-pay-now></div>
+        </div>
+
         <div class="confirm-box" data-box="cancel" hidden>
           <p><strong>Cancel this booking?</strong> Your pro will be told right away.</p>
           <div class="field"><label for="c-reason">Reason <span class="hint">(optional)</span></label><input id="c-reason" maxlength="500"></div>

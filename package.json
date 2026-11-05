@@ -14,7 +14,8 @@
     "@neon/env": "^1.6.11",
     "@neondatabase/serverless": "1.2.0",
     "fullcalendar": "^6.1.22",
-    "luxon": "3.7.2"
+    "luxon": "3.7.2",
+    "stripe": "^23.1.0"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.15"

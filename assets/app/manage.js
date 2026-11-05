@@ -29,9 +29,21 @@
       "<strong>" + NP.esc(b.service_name) + "</strong><span>" + NP.esc(NP.when(b.starts_at)) + "</span>" +
       "<span>" + NP.esc(b.address) + "</span>" +
       '<span class="muted">Your pro: ' + NP.esc(b.vendor_business || b.vendor_first_name) + "</span>" +
-      (b.price_cents != null ? '<span class="muted">From ' + NP.money(b.price_cents) + "</span>" : "") +
+      (b.payment_status && b.payment_status !== "none"
+        ? '<span class="muted">' + NP.PAY_LABEL[b.payment_status] + (b.amount_charged_cents ? ": " + NP.money(b.amount_charged_cents) : "") +
+          (b.amount_refunded_cents ? " (" + NP.money(b.amount_refunded_cents) + " refunded)" : "") + "</span>"
+        : (b.price_cents != null ? '<span class="muted">From ' + NP.money(b.price_cents) + "</span>" : "")) +
       (b.notes ? '<span class="muted">Notes: ' + NP.esc(b.notes) + "</span>" : "");
     $('[data-bind="actions"]').hidden = b.status !== "confirmed" || past;
+    var payBox = $('[data-box="pay"]');
+    payBox.hidden = b.payment_status !== "failed";
+    if (b.payment_status === "failed") {
+      NP.api("POST", "/api/booking/pay", { t: token }).then(function (r) {
+        return NP.payNow($("[data-pay-now]"), r.clientSecret, r.amount, function () {
+          return NP.api("POST", "/api/booking/pay/done", { t: token }).then(function () { say("Thank you! Your payment went through.", true); load(); });
+        });
+      }, function (err) { $("[data-pay-now]").textContent = err.message; });
+    }
     $('[data-box="cancel"]').hidden = true;
     $('[data-box="reschedule"]').hidden = true;
   }

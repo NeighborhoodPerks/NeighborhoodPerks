@@ -34,12 +34,17 @@
       Homeowners can't see or book you until then, so use this time to add your photo and bio, set your hours, and check your services.
     </div>
     <div class="pending-banner is-admin" data-applications hidden></div>
+    <div class="pending-banner" data-payout-banner hidden>
+      <strong>Set up payouts to get booked.</strong> Homeowners can only book pros who can be paid.
+      <button type="button" class="linklike" data-goto-payouts>Set up payouts</button>
+    </div>
 
     <nav class="tabs" role="tablist">
       <button type="button" role="tab" data-tab="calendar" aria-selected="true">Calendar</button>
       <button type="button" role="tab" data-tab="profile">Profile</button>
       <button type="button" role="tab" data-tab="hours">Hours</button>
       <button type="button" role="tab" data-tab="services">Services</button>
+      <button type="button" role="tab" data-tab="payouts" data-payments hidden>Payouts</button>
       <button type="button" role="tab" data-tab="sync">Phone calendar</button>
       <button type="button" role="tab" data-tab="vendors" data-admin hidden>Providers</button>
     </nav>
@@ -119,6 +124,15 @@
       </div>
     </div>
 
+    <!-- Payouts -->
+    <div class="tab-panel" data-panel="payouts" hidden>
+      <div class="panel-card">
+        <h2>Payouts</h2>
+        <p class="muted">Homeowners pay through Neighborhood Perks when you mark a job done. You keep <strong data-bind="keep-pct">85%</strong>; it goes straight to your bank through Stripe.</p>
+        <div data-bind="payouts"><p class="muted">Loading…</p></div>
+      </div>
+    </div>
+
     <!-- Phone calendar sync -->
     <div class="tab-panel" data-panel="sync" hidden>
       <div class="panel-card">
@@ -147,6 +161,10 @@
           <input name="zips" placeholder="ZIP codes, e.g. 92130, 92127" aria-label="ZIP codes" class="inline-input">
           <button class="btn btn-dark btn-sm" type="submit">Add or update</button>
         </form>
+      </div>
+      <div class="panel-card" data-payments hidden>
+        <h2>Payments this month</h2>
+        <div data-bind="pay-summary"><p class="muted">Loading…</p></div>
       </div>
       <div class="panel-card">
         <h2>Email check</h2>

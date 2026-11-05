@@ -195,6 +195,35 @@ ALTER TABLE bookings ADD COLUMN IF NOT EXISTS customer_user_id uuid REFERENCES u
 CREATE INDEX IF NOT EXISTS bookings_customer ON bookings (customer_user_id, starts_at);
 CREATE INDEX IF NOT EXISTS bookings_customer_email ON bookings (lower(customer_email));
 
+-- Payments (Stripe Connect). Card saved at booking, charged when the provider marks the job done.
+ALTER TABLE vendors ADD COLUMN IF NOT EXISTS stripe_account_id text;
+ALTER TABLE vendors ADD COLUMN IF NOT EXISTS stripe_charges_enabled boolean NOT NULL DEFAULT false;
+ALTER TABLE vendors ADD COLUMN IF NOT EXISTS stripe_payouts_enabled boolean NOT NULL DEFAULT false;
+ALTER TABLE vendors ADD COLUMN IF NOT EXISTS stripe_details_submitted boolean NOT NULL DEFAULT false;
+CREATE UNIQUE INDEX IF NOT EXISTS vendors_stripe_account ON vendors (stripe_account_id) WHERE stripe_account_id IS NOT NULL;
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_customer_id text;
+
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS stripe_customer_id text;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS stripe_payment_method_id text;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS stripe_payment_intent_id text;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS payment_status text NOT NULL DEFAULT 'none';
+ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_payment_status_check;
+ALTER TABLE bookings ADD CONSTRAINT bookings_payment_status_check CHECK (payment_status IN
+  ('none', 'card_saved', 'processing', 'paid', 'failed', 'refunded', 'partially_refunded'));
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS amount_charged_cents integer;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS platform_fee_cents integer;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS amount_refunded_cents integer NOT NULL DEFAULT 0;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS paid_at timestamptz;
+CREATE UNIQUE INDEX IF NOT EXISTS bookings_payment_intent ON bookings (stripe_payment_intent_id) WHERE stripe_payment_intent_id IS NOT NULL;
+
+-- Webhook events already handled (Stripe can deliver the same event more than once)
+CREATE TABLE IF NOT EXISTS stripe_events (
+  id           text PRIMARY KEY,
+  type         text NOT NULL,
+  received_at  timestamptz NOT NULL DEFAULT now()
+);
+
 INSERT INTO areas (slug, name, zips, sort) VALUES
   ('carmel-valley', 'Carmel Valley', '{92130}', 1),
   ('torrey-highlands', 'Torrey Highlands', '{92129}', 2),

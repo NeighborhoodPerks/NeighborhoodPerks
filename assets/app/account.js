@@ -21,6 +21,10 @@
       (b.vendor_photo_url ? '<img class="avatar" src="' + esc(b.vendor_photo_url) + '" alt="" width="48" height="48">' : '<span class="avatar avatar-initials" style="width:48px;height:48px">' + esc(initials(b.vendor_name)) + "</span>") +
       "<div><strong>" + esc(b.service_name) + "</strong><span>" + esc(NP.when(b.starts_at)) + '</span><span class="muted">With ' + esc(pro) + "</span></div>" +
       '<span class="status-pill is-' + b.status + '">' + STATUS[b.status] + "</span></div>" +
+      (b.payment_status && b.payment_status !== "none"
+        ? '<p class="pay-line pay-' + b.payment_status + '">' + NP.PAY_LABEL[b.payment_status] + (b.amount_charged_cents ? ": " + NP.money(b.amount_charged_cents) : "") +
+          (b.payment_status === "failed" ? ' <button type="button" class="btn btn-primary btn-sm" data-pay="' + b.id + '">Pay now</button>' : "") + "</p>"
+        : "") +
       '<p class="muted acct-addr">' + esc(b.address) + "</p>" +
       (upcoming ? '<div class="btn-row"><button type="button" class="btn btn-dark btn-sm" data-move="' + b.id + '">Change time</button>' +
         '<button type="button" class="btn btn-ghost btn-sm" data-cancel="' + b.id + '">Cancel</button>' +
@@ -70,6 +74,8 @@
     var cx = e.target.closest("[data-cancel]");
     if (mv) openMove(bookings.find(function (b) { return b.id === mv.getAttribute("data-move"); }));
     if (cx) openCancel(bookings.find(function (b) { return b.id === cx.getAttribute("data-cancel"); }));
+    var pv = e.target.closest("[data-pay]");
+    if (pv) openPay(pv.getAttribute("data-pay"));
     if (e.target.closest('[data-act="resend"]')) {
       NP.api("POST", "/api/auth/verify/resend", {}).then(function () {
         e.target.textContent = "Sent! Check your inbox";
@@ -77,6 +83,15 @@
       }, function (err) { e.target.textContent = err.message; });
     }
   });
+
+  function openPay(id) {
+    openSheet("<h2>Pay with another card</h2><div data-pay-now><p class=\"muted\">Loading…</p></div>");
+    NP.api("POST", "/api/account/bookings/" + id + "/pay", {}).then(function (r) {
+      return NP.payNow($("[data-pay-now]", sheet), r.clientSecret, r.amount, function () {
+        return NP.api("POST", "/api/account/bookings/" + id + "/pay/done", {}).then(function () { closeSheet(); load(); });
+      });
+    }, function (err) { $("[data-pay-now]", sheet).textContent = err.message; });
+  }
 
   function openCancel(b) {
     openSheet("<h2>Cancel this booking?</h2><p><strong>" + esc(b.service_name) + "</strong>, " + esc(NP.when(b.starts_at)) + "</p>" +
