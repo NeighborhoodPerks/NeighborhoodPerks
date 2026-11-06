@@ -206,6 +206,82 @@ test("refunds: admin only, partial then the rest, money comes back from the prov
   assert.ok(sum.data.paid_jobs >= 2);
 });
 
+test("pros set their own prices, within limits; only admins add services", async () => {
+  const put = (body, cookie = proCookie) => call("PUT", "/api/my/services", { cookie, body: { service: "pet-walking", duration_min: 30, buffer_min: 0, ...body } });
+  assert.equal((await put({ price_cents: 300 })).data.code, "invalid_price", "under $5");
+  assert.equal((await put({ price_cents: 600_000 })).data.code, "invalid_price", "over $5,000");
+  assert.equal((await put({ price_cents: null })).data.code, "price_required");
+  const ok = await put({ price_cents: 4500 });
+  assert.equal(ok.status, 200, JSON.stringify(ok.data));
+  assert.equal(ok.data.services.find((x) => x.slug === "pet-walking").price_cents, 4500);
+  const kept = await put({ duration_min: 45 });
+  assert.equal(kept.data.services.find((x) => x.slug === "pet-walking").price_cents, 4500, "a save without a price keeps the price");
+  assert.equal((await call("PUT", "/api/my/services", { cookie: proCookie, body: { service: "pet-sitting", duration_min: 60, price_cents: 5000 } })).status, 403, "pros can't add a new service");
+  const admin = await call("PUT", `/api/my/services?vendor=${pro}`, { cookie: adminCookie, body: { service: "pet-walking", duration_min: 30, buffer_min: 0, price_cents: 4000 } });
+  assert.equal(admin.data.services.find((x) => x.slug === "pet-walking").price_cents, 4000, "admins can override");
+});
+
+test("tips: link in the paid email, 100% to the pro, once, kept apart from the job payment", async () => {
+  await book(14, { email: "tia@example.com", name: "Tia Tipper", setup_intent: cardFor() });
+  const bid = await bookingIdFor("tia@example.com");
+  await pastIt(bid);
+  sent.length = 0;
+  await call("POST", `/api/bookings/${bid}/status`, { cookie: proCookie, body: { status: "completed", amount: 50 } });
+  const paidMail = sent.find((m) => m.to === "tia@example.com" && /^Paid/.test(m.subject));
+  assert.match(paidMail.text, /\/tip\/\?t=/, "the paid email has a tip link");
+  const t = tokenIn(paidMail.text.slice(paidMail.text.indexOf("/tip/")));
+
+  const info = await call("GET", "/api/tip?t=" + t);
+  assert.equal(info.data.can_tip, true);
+  assert.deepEqual(info.data.suggestions.map((x) => x.cents), [750, 1000, 1250]);
+  assert.equal((await call("POST", "/api/tip", { body: { t, amount: 0.5 } })).data.code, "invalid_tip");
+  assert.equal((await call("POST", "/api/tip", { body: { t, amount: 500 } })).data.code, "invalid_tip", "over the cap");
+
+  const before = await bookingRow(bid);
+  sent.length = 0;
+  const r = await call("POST", "/api/tip", { body: { t, amount: 10 } });
+  assert.deepEqual(r.data, { status: "paid", amount: 1000 });
+  const pi = [...fake.paymentIntents.values()].at(-1);
+  assert.equal(pi.amount, 1000);
+  assert.equal(pi.application_fee_amount, undefined, "no fee on tips");
+  assert.equal(pi.metadata.kind, "tip");
+  assert.equal(pi.transfer_data.destination, before.stripe_account_id || (await db().query(`SELECT stripe_account_id FROM vendors WHERE id=$1`, [pro]))[0].stripe_account_id);
+  const after = await bookingRow(bid);
+  assert.deepEqual([after.tip_status, after.tip_cents, after.tip_token_hash], ["paid", 1000, null]);
+  assert.deepEqual([after.payment_status, after.amount_charged_cents, after.stripe_payment_intent_id], [before.payment_status, before.amount_charged_cents, before.stripe_payment_intent_id], "the job payment is untouched");
+  assert.ok(sent.some((m) => m.to === "paz@example.com" && /tip from Tia Tipper/.test(m.subject)));
+  assert.ok(sent.some((m) => m.to === "tia@example.com" && /Thanks for the \$10\.00 tip/.test(m.subject)));
+  assert.equal((await call("GET", "/api/tip?t=" + t)).status, 404, "the link works once");
+  assert.equal((await call("GET", `/api/bookings/${bid}`, { cookie: proCookie })).data.booking.tip_cents, 1000, "the pro sees the tip");
+
+  // The webhook for the tip's PaymentIntent records nothing new and never touches the job payment
+  const evt = { id: "evt_tip_1", type: "payment_intent.succeeded", data: { object: { ...pi, status: "succeeded" } } };
+  await call("POST", "/api/stripe/webhook", { raw: JSON.stringify(evt), headers: { "stripe-signature": "sig:whsec_test" } });
+  const again = await bookingRow(bid);
+  assert.deepEqual([again.amount_charged_cents, again.stripe_payment_intent_id, again.tip_cents], [before.amount_charged_cents, before.stripe_payment_intent_id, 1000]);
+});
+
+test("tips: a card that needs the customer is finished in the browser", async () => {
+  await book(15, { email: "ned@example.com", name: "Ned Needs", setup_intent: cardFor() });
+  const bid = await bookingIdFor("ned@example.com");
+  await pastIt(bid);
+  sent.length = 0;
+  await call("POST", `/api/bookings/${bid}/status`, { cookie: proCookie, body: { status: "completed", amount: 40 } });
+  const mail = sent.find((m) => m.to === "ned@example.com" && /^Paid/.test(m.subject));
+  const t = tokenIn(mail.text.slice(mail.text.indexOf("/tip/")));
+  await db().query(`UPDATE bookings SET stripe_payment_method_id = 'pm_declined' WHERE id = $1`, [bid]);
+  const r = await call("POST", "/api/tip", { body: { t, amount: 6 } });
+  assert.equal(r.data.status, "needs_card");
+  assert.match(r.data.clientSecret, /^pi_secret_/);
+  assert.equal((await bookingRow(bid)).tip_status, "failed");
+  // The customer confirms in the browser; we check with Stripe rather than trusting the browser
+  const pi = [...fake.paymentIntents.values()].find((x) => x.metadata?.kind === "tip" && x.amount === 600);
+  pi.status = "succeeded";
+  const done = await call("POST", "/api/tip/done", { body: { t } });
+  assert.equal(done.data.status, "paid");
+  assert.equal((await bookingRow(bid)).tip_cents, 600);
+});
+
 test("webhooks: forged signatures refused, duplicates ignored, provider status synced", async () => {
   const [{ stripe_account_id: acct }] = await db().query(`SELECT stripe_account_id FROM vendors WHERE id = $1`, [pro]);
   const evt = { id: "evt_1", type: "account.updated", data: { object: { id: acct, charges_enabled: false, payouts_enabled: false, details_submitted: true } } };

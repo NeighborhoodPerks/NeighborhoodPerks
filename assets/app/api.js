@@ -201,7 +201,46 @@
       };
     });
   }
+  /**
+   * Tip picker: suggested amounts or a custom one, charged to the card on file.
+   * send(dollars) posts the tip; finish() records one the browser had to confirm; done(cents) runs after.
+   */
+  function tipBox(box, info, send, finish, done) {
+    var pick = info.suggestions[1] ? info.suggestions[1].cents : 500;
+    box.innerHTML = '<div class="tip-choices">' + info.suggestions.map(function (s) {
+      return '<button type="button" class="tip-choice" data-cents="' + s.cents + '"><b>' + money(s.cents) + "</b><span>" + s.pct + "%</span></button>";
+    }).join("") + '<label class="tip-choice tip-custom"><span>Other $</span><input inputmode="decimal" maxlength="7" aria-label="Other amount"></label></div>' +
+      '<div class="form-foot"><button type="button" class="btn btn-primary" data-send>Tip ' + money(pick) + '</button><span class="muted">100% goes to ' + esc(info.pro) + ". Charged to the card you booked with.</span></div>" +
+      '<div class="form-status" role="alert"></div><div data-tip-card></div>';
+    var btn = box.querySelector("[data-send]");
+    var st = box.querySelector(".form-status");
+    var custom = box.querySelector(".tip-custom input");
+    function choose(cents) {
+      pick = cents;
+      box.querySelectorAll("[data-cents]").forEach(function (b) { b.classList.toggle("is-selected", Number(b.getAttribute("data-cents")) === cents); });
+      btn.textContent = cents >= 100 ? "Tip " + money(cents) : "Choose an amount";
+      btn.disabled = !(cents >= 100);
+    }
+    box.querySelectorAll("[data-cents]").forEach(function (b) { b.onclick = function () { custom.value = ""; choose(Number(b.getAttribute("data-cents"))); }; });
+    custom.oninput = function () { var v = Number(String(custom.value).replace(/[$,\s]/g, "")); choose(isFinite(v) ? Math.round(v * 100) : 0); };
+    choose(pick);
+    btn.onclick = function () {
+      if (pick > info.max_cents) { st.className = "form-status err"; st.textContent = "The most you can tip here is " + money(info.max_cents) + "."; return; }
+      btn.disabled = true;
+      btn.textContent = "Sending…";
+      st.className = "form-status";
+      send(pick / 100).then(function (r) {
+        if (r.status === "paid" || r.status === "processing") return done(pick);
+        if (r.status === "needs_card") {
+          st.className = "form-status err";
+          st.textContent = "Your bank needs you to confirm this, or you can use another card.";
+          return payNow(box.querySelector("[data-tip-card]"), r.clientSecret, r.amount, function () { return finish().then(function () { done(pick); }); });
+        }
+        throw new Error(r.message || "That didn't go through. Please try again.");
+      }).catch(function (err) { st.className = "form-status err"; st.textContent = err.message; choose(pick); });
+    };
+  }
   var PAY_LABEL = { card_saved: "Card on file", processing: "Payment processing", paid: "Paid", failed: "Payment needed", refunded: "Refunded", partially_refunded: "Partly refunded" };
 
-  window.NP = { api: api, config: config, stripeJs: stripeJs, stripeAppearance: stripeAppearance, payNow: payNow, PAY_LABEL: PAY_LABEL, dateKey: dateKey, time: time, dayLong: dayLong, when: when, money: money, esc: esc, todayLocal: todayLocal, DatePicker: DatePicker, renderSlots: renderSlots, TZ: TZ };
+  window.NP = { api: api, config: config, stripeJs: stripeJs, stripeAppearance: stripeAppearance, payNow: payNow, tipBox: tipBox, PAY_LABEL: PAY_LABEL, dateKey: dateKey, time: time, dayLong: dayLong, when: when, money: money, esc: esc, todayLocal: todayLocal, DatePicker: DatePicker, renderSlots: renderSlots, TZ: TZ };
 })();

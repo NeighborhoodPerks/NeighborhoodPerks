@@ -244,6 +244,7 @@
         (b.payment_status && b.payment_status !== "none" ? "<div><dt>Payment</dt><dd>" + esc(NP.PAY_LABEL[b.payment_status]) +
           (b.amount_charged_cents ? ": " + NP.money(b.amount_charged_cents) + (b.platform_fee_cents != null ? ' <span class="muted">(fee ' + NP.money(b.platform_fee_cents) + ", provider " + NP.money(b.amount_charged_cents - b.platform_fee_cents) + ")</span>" : "") : "") +
           (b.amount_refunded_cents ? " · refunded " + NP.money(b.amount_refunded_cents) : "") + "</dd></div>" : "") +
+        (b.tip_cents ? "<div><dt>Tip</dt><dd>" + NP.money(b.tip_cents) + ' <span class="muted">(all to the provider, no fee)</span></dd></div>' : "") +
         (isAdmin() ? "<div><dt>Provider</dt><dd>" + esc(b.vendor_name) + "</dd></div>" : "") +
         (b.cancel_reason ? "<div><dt>Cancel reason</dt><dd>" + esc(b.cancel_reason) + "</dd></div>" : "") +
         "</dl>" +
@@ -517,7 +518,7 @@
       '<label>Gap after <select name="buffer_min">' + [0, 15, 30, 45, 60, 90, 120].map(function (m) {
         return '<option value="' + m + '"' + (m === sv.buffer_min ? " selected" : "") + ">" + (m ? m + " min" : "None") + "</option>";
       }).join("") + "</select></label>" +
-      (isAdmin() ? '<label>Price from $ <input name="price" inputmode="decimal" size="6" value="' + (sv.price_cents != null ? (sv.price_cents / 100) : "") + '"></label>' : (sv.price_cents != null ? '<span class="muted">From ' + NP.money(sv.price_cents) + "</span>" : "")) +
+      '<label>Price from $ <input name="price" inputmode="decimal" size="6" value="' + (sv.price_cents != null ? (sv.price_cents / 100) : "") + '"' + (sv.price_cents == null ? ' placeholder="Set it"' : "") + "></label>" +
       '<label class="day-toggle"><input type="checkbox" name="active"' + (sv.active ? " checked" : "") + "> Taking bookings</label>" +
       '<button class="btn btn-dark btn-sm" type="submit">Save</button></form>';
   }
@@ -546,10 +547,9 @@
       buffer_min: Number(f.buffer_min.value),
       active: add ? true : f.active.checked,
     };
-    if (isAdmin()) {
-      body.price_cents = priceCents(f.price.value);
-      if (Number.isNaN(body.price_cents)) return toast("Price must be a number, like 120 or 89.50.", true);
-    }
+    body.price_cents = priceCents(f.price.value);
+    if (Number.isNaN(body.price_cents)) return toast("Price must be a number, like 120 or 89.50.", true);
+    if (!isAdmin() && body.price_cents == null) return toast("Set a price so homeowners know what to expect.", true);
     NP.api("PUT", "/api/my/services" + scope(), body).then(function () { toast("Saved."); loadServices(); }, function (err) { toast(err.message, true); });
   });
 
@@ -812,7 +812,7 @@
       if (!p.enabled) return;
       $('[data-bind="pay-summary"]').innerHTML = '<dl class="facts">' + [
         ["Month", p.month], ["Jobs paid", p.paid_jobs], ["Customers paid", NP.money(p.gross)],
-        ["Neighborhood Perks earned (" + p.feePercent + "%)", NP.money(p.fees)], ["Refunded", NP.money(p.refunded)], ["Declined cards waiting", p.failed],
+        ["Neighborhood Perks earned (" + p.feePercent + "%)", NP.money(p.fees)], ["Refunded", NP.money(p.refunded)], ["Declined cards waiting", p.failed], ["Tips to providers", p.tips ? p.tips + " · " + NP.money(p.tip_cents) : "None yet"],
       ].map(function (x) { return "<div><dt>" + esc(x[0]) + "</dt><dd>" + esc(x[1]) + "</dd></div>"; }).join("") + "</dl>" +
         '<p class="muted mt-s" style="font-size:.9rem">Stripe\'s card processing fee comes out of your share. Full details are in your Stripe dashboard.</p>';
     }, function () {});

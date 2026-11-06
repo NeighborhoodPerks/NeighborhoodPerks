@@ -224,6 +224,17 @@ CREATE TABLE IF NOT EXISTS stripe_events (
   received_at  timestamptz NOT NULL DEFAULT now()
 );
 
+-- Tips: an optional second charge after a paid job, 100% to the pro (no platform fee).
+-- tip_token_hash is a one-time link in the "paid" email, separate from the manage link.
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS tip_cents integer CHECK (tip_cents IS NULL OR tip_cents > 0);
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS tip_status text;
+ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_tip_status_check;
+ALTER TABLE bookings ADD CONSTRAINT bookings_tip_status_check CHECK (tip_status IS NULL OR tip_status IN ('processing', 'paid', 'failed'));
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS tip_payment_intent_id text;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS tipped_at timestamptz;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS tip_token_hash text;
+CREATE UNIQUE INDEX IF NOT EXISTS bookings_tip_token ON bookings (tip_token_hash) WHERE tip_token_hash IS NOT NULL;
+
 -- HOA program -------------------------------------------------------------------
 -- A community (HOA) belongs to one area. Residents unlock resident pricing with the
 -- community's join code, which the HOA shares in its newsletter.

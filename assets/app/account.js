@@ -23,7 +23,9 @@
       '<span class="status-pill is-' + b.status + '">' + STATUS[b.status] + "</span></div>" +
       (b.payment_status && b.payment_status !== "none"
         ? '<p class="pay-line pay-' + b.payment_status + '">' + NP.PAY_LABEL[b.payment_status] + (b.amount_charged_cents ? ": " + NP.money(b.amount_charged_cents) : "") +
-          (b.payment_status === "failed" ? ' <button type="button" class="btn btn-primary btn-sm" data-pay="' + b.id + '">Pay now</button>' : "") + "</p>"
+          (b.tip_cents ? " · tipped " + NP.money(b.tip_cents) : "") +
+          (b.payment_status === "failed" ? ' <button type="button" class="btn btn-primary btn-sm" data-pay="' + b.id + '">Pay now</button>' : "") +
+          (canTip(b) ? ' <button type="button" class="btn btn-ghost btn-sm" data-tip="' + b.id + '">Add a tip</button>' : "") + "</p>"
         : "") +
       '<p class="muted acct-addr">' + esc(b.address) + "</p>" +
       (upcoming ? '<div class="btn-row"><button type="button" class="btn btn-dark btn-sm" data-move="' + b.id + '">Change time</button>' +
@@ -31,6 +33,22 @@
         (b.vendor_phone ? '<a class="btn btn-ghost btn-sm" href="tel:' + esc(b.vendor_phone.replace(/[^\d+]/g, "")) + '">Call ' + esc(b.vendor_name.split(" ")[0]) + "</a>" : "") + "</div>"
         : (b.status !== "cancelled" ? '<a class="linklike" href="/book/?service=' + encodeURIComponent(b.service_slug) + '">Book again</a>' : "")) +
       "</article>";
+  }
+
+  // Tips open for 30 days after a paid job, once
+  function canTip(b) {
+    return (b.payment_status === "paid" || b.payment_status === "partially_refunded") && !b.tip_cents && b.paid_at && Date.now() - new Date(b.paid_at) < 30 * 864e5;
+  }
+  function openTip(b) {
+    openSheet('<h2>Tip ' + esc((b.vendor_name || "").split(" ")[0]) + "</h2><p class=\"muted\">For " + esc(b.service_name.toLowerCase()) + " on " + esc(NP.when(b.starts_at)) + '.</p><div data-tip-box><p class="muted">Loading…</p></div>');
+    var box = $("[data-tip-box]", sheet);
+    NP.api("GET", "/api/account/bookings/" + b.id + "/tip").then(function (info) {
+      if (!info.can_tip) { box.innerHTML = '<p class="muted">' + (info.tip_cents ? "You've already tipped " + NP.money(info.tip_cents) + ". Thank you!" : "Tips for this job are closed.") + "</p>"; return; }
+      NP.tipBox(box, info,
+        function (dollars) { return NP.api("POST", "/api/account/bookings/" + b.id + "/tip", { amount: dollars }); },
+        function () { return NP.api("POST", "/api/account/bookings/" + b.id + "/tip/done", {}); },
+        function (cents) { box.innerHTML = '<p class="tip-done">Thank you! ' + NP.money(cents) + " is on its way to " + esc(info.pro) + ".</p>"; load(); });
+    }, function (err) { box.innerHTML = '<p class="form-status err" style="display:block">' + esc(err.message) + "</p>"; });
   }
 
   function render() {
@@ -104,6 +122,8 @@
 
   // --- actions ---
   root.addEventListener("click", function (e) {
+    var tp = e.target.closest("[data-tip]");
+    if (tp) openTip(bookings.find(function (b) { return b.id === tp.getAttribute("data-tip"); }));
     var mv = e.target.closest("[data-move]");
     var cx = e.target.closest("[data-cancel]");
     if (mv) openMove(bookings.find(function (b) { return b.id === mv.getAttribute("data-move"); }));

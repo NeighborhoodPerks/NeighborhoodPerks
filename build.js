@@ -275,5 +275,5 @@ fs.writeFileSync(path.join(OUT, "sitemap.xml"),
   urls.map((u) => `  <url><loc>${SITE}${u}</loc><lastmod>${today}</lastmod></url>`).join("\n") + `\n</urlset>\n`);
 // Private and app pages are noindex too; this also keeps crawlers out of the API
 fs.writeFileSync(path.join(OUT, "robots.txt"),
-  `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /vendor/\nDisallow: /account/\nDisallow: /booking/\nDisallow: /signin/\nDisallow: /community/\nDisallow: /hoa/report/\n\nSitemap: ${SITE}/sitemap.xml\n`);
+  `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /vendor/\nDisallow: /account/\nDisallow: /booking/\nDisallow: /signin/\nDisallow: /community/\nDisallow: /hoa/report/\nDisallow: /tip/\n\nSitemap: ${SITE}/sitemap.xml\n`);
 console.log("built sitemap.xml, robots.txt");

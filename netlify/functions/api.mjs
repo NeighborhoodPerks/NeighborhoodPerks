@@ -27,6 +27,7 @@ import { sendEmail, normalizeFrom } from "../../lib/notify.mjs";
 import {
   paymentsEnabled, publicConfig, createSetupIntent, confirmedCard, attachCardToBooking, chargeBooking, payNowSecret, syncPayment,
   refundBooking, payoutStatus, onboardingLink, refreshAccount, stripeDashboardLink, handleWebhook, paymentsSummary,
+  tipInfo, tipBooking, syncTip, bookingIdByTipToken,
 } from "../../lib/payments.mjs";
 import {
   resolveCommunity, publicCommunity, setCustomerCommunity, upsertCommunity, listCommunities, reportLink, addPayout, boardReport,
@@ -141,6 +142,13 @@ route("POST", "/api/payments/setup", async ({ req, body }) => {
 });
 route("POST", "/api/booking/pay", async ({ body }) => json(await payNowSecret(await bookingIdByToken(body.t))));
 route("POST", "/api/booking/pay/done", async ({ body }) => json(await syncPayment(await bookingIdByToken(body.t))));
+// Tips: from the one-time link in the "paid" email
+route("GET", "/api/tip", async ({ url }) => json(await tipInfo(await bookingIdByTipToken(url.searchParams.get("t")))));
+route("POST", "/api/tip", async ({ req, body }) => {
+  await rateLimit(`tip:${clientIp(req)}`, 20, 3600);
+  return json(await tipBooking(await bookingIdByTipToken(body.t), Math.round(Number(body.amount) * 100), { actor: "customer" }));
+});
+route("POST", "/api/tip/done", async ({ body }) => json(await syncTip(await bookingIdByTipToken(body.t))));
 route("GET", "/api/areas", async () => json({ areas: (await listAreas()).map(({ slug, name, zips }) => ({ slug, name, zips })) }));
 route("GET", "/api/areas/find", async ({ url }) => json({ areas: await findAreas(url.searchParams.get("q")) }));
 route("GET", "/api/pros", async ({ url }) => {
@@ -242,6 +250,24 @@ route("POST", "/api/account/bookings/:id/pay/done", async ({ req, params }) => {
   const id = uuid(params.id);
   await assertCustomerBooking(user, id);
   return json(await syncPayment(id));
+});
+route("GET", "/api/account/bookings/:id/tip", async ({ req, params }) => {
+  const user = await requireUser(req, ["customer"]);
+  const id = uuid(params.id);
+  await assertCustomerBooking(user, id);
+  return json(await tipInfo(id));
+});
+route("POST", "/api/account/bookings/:id/tip", async ({ req, params, body }) => {
+  const user = await requireUser(req, ["customer"]);
+  const id = uuid(params.id);
+  await assertCustomerBooking(user, id);
+  return json(await tipBooking(id, Math.round(Number(body.amount) * 100), { actor: "customer" }));
+});
+route("POST", "/api/account/bookings/:id/tip/done", async ({ req, params }) => {
+  const user = await requireUser(req, ["customer"]);
+  const id = uuid(params.id);
+  await assertCustomerBooking(user, id);
+  return json(await syncTip(id));
 });
 route("POST", "/api/account/bookings/:id/reschedule", async ({ req, params, body }) => {
   const user = await requireUser(req, ["customer"]);
@@ -353,7 +379,7 @@ route("GET", "/api/my/services", async ({ req, url }) => {
 });
 route("PUT", "/api/my/services", async ({ req, url, body }) => {
   const user = await requireUser(req, ["vendor", "admin"]);
-  return json({ services: await setVendorService(scopeVendor(user, url), body, { canPrice: user.role === "admin" }) });
+  return json({ services: await setVendorService(scopeVendor(user, url), body, { admin: user.role === "admin" }) });
 });
 route("GET", "/api/my/profile", async ({ req, url }) => {
   const user = await requireUser(req, ["vendor", "admin"]);
