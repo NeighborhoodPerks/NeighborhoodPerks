@@ -13,7 +13,7 @@
   var vendors = [];
   var allServices = [];
   var allAreas = [];
-  var payCfg = { payments: false, feePercent: 15 };
+  var payCfg = { payments: false, feePercent: 10 };
   var DAYS = ["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
   function view(name) { $$("[data-view]").forEach(function (el) { el.hidden = el.getAttribute("data-view") !== name; }); }
@@ -105,6 +105,8 @@
     if (name === "sync") loadIcs();
     if (name === "payouts") loadPayouts();
     if (name === "vendors") loadVendors();
+    if (name === "hoa") loadHoa();
+    if (name === "communities") loadCommunities();
   }
   $$("[data-tab]").forEach(function (b) { b.addEventListener("click", function () { tab(b.getAttribute("data-tab")); }); });
   root.addEventListener("click", function (e) {
@@ -186,11 +188,12 @@
           extendedProps: { kind: "booking", id: b.id, status: b.status, address: b.address },
         };
       }).concat(res.timeOff.map(function (t) {
+        var group = !!t.group_day_id;
         return {
-          id: "t-" + t.id, title: "Blocked" + (t.note ? " · " + t.note : "") + (showVendor ? " (" + t.vendor_name.split(" ")[0] + ")" : ""),
-          start: t.starts_at, end: t.ends_at, editable: false, classNames: ["ev-off"],
-          backgroundColor: "#f3ecdf", borderColor: "#d8ccb5", textColor: "#4a5a50",
-          extendedProps: { kind: "off", id: t.id },
+          id: "t-" + t.id, title: (group ? "" : "Blocked") + (t.note ? (group ? "" : " · ") + t.note : "") + (showVendor ? " (" + t.vendor_name.split(" ")[0] + ")" : ""),
+          start: t.starts_at, end: t.ends_at, editable: false, classNames: ["ev-off"], display: group ? "background" : "auto",
+          backgroundColor: group ? "#fbe6dc" : "#f3ecdf", borderColor: group ? "#f3cdbd" : "#d8ccb5", textColor: "#4a5a50",
+          extendedProps: { kind: group ? "group" : "off", id: t.id },
         };
       }));
       ok(evs);
@@ -234,7 +237,10 @@
         '<div><dt>Email</dt><dd><a href="mailto:' + esc(b.customer_email) + '">' + esc(b.customer_email) + "</a></dd></div>" +
         '<div><dt>Address</dt><dd><a href="' + maps + '" target="_blank" rel="noopener">' + esc(b.address) + "</a>" + (b.neighborhood ? " · " + esc(b.neighborhood) : "") + "</dd></div>" +
         (b.notes ? "<div><dt>Notes</dt><dd>" + esc(b.notes) + "</dd></div>" : "") +
-        (b.price_cents != null ? "<div><dt>Price</dt><dd>From " + NP.money(b.price_cents) + "</dd></div>" : "") +
+        (b.price_cents != null ? "<div><dt>Price</dt><dd>From " + NP.money(b.price_cents) +
+          (b.price_kind ? ' <span class="price-tag">' + (b.price_kind === "group" ? "group day" : "resident") + "</span>" +
+            (b.list_price_cents > b.price_cents ? ' <span class="muted">(usually ' + NP.money(b.list_price_cents) + ")</span>" : "") : "") + "</dd></div>" : "") +
+        (b.community_name ? "<div><dt>Community</dt><dd>" + esc(b.community_name) + (b.group_day_id ? " · group day" : "") + "</dd></div>" : "") +
         (b.payment_status && b.payment_status !== "none" ? "<div><dt>Payment</dt><dd>" + esc(NP.PAY_LABEL[b.payment_status]) +
           (b.amount_charged_cents ? ": " + NP.money(b.amount_charged_cents) + (b.platform_fee_cents != null ? ' <span class="muted">(fee ' + NP.money(b.platform_fee_cents) + ", provider " + NP.money(b.amount_charged_cents - b.platform_fee_cents) + ")</span>" : "") : "") +
           (b.amount_refunded_cents ? " · refunded " + NP.money(b.amount_refunded_cents) : "") + "</dd></div>" : "") +
@@ -392,6 +398,12 @@
   }
 
   function showTimeOff(ev) {
+    if (ev.extendedProps.kind === "group") {
+      openSheet("<h2>" + esc(ev.title) + "</h2><p>" + esc(NP.when(ev.start.toISOString())) + " – " + esc(NP.time(ev.end.toISOString())) + "</p>" +
+        '<p class="muted">This time is held for a group day: only that community\'s residents can book it.</p><div class="btn-row"><button class="btn btn-dark btn-sm" data-yes>Open the HOA tab</button></div>');
+      $("[data-yes]", sheet).onclick = function () { closeSheet(); tab("hoa"); };
+      return;
+    }
     openSheet("<h2>" + esc(ev.title) + "</h2><p>" + esc(NP.when(ev.start.toISOString())) + " – " + esc(NP.when(ev.end.toISOString())) + "</p>" +
       '<div class="btn-row"><button class="btn btn-ghost btn-sm danger" data-yes>Remove this block</button></div>');
     $("[data-yes]", sheet).onclick = function () {
@@ -805,6 +817,214 @@
         '<p class="muted mt-s" style="font-size:.9rem">Stripe\'s card processing fee comes out of your share. Full details are in your Stripe dashboard.</p>';
     }, function () {});
   }
+
+  // --- HOA program (pro) --------------------------------------------------------------------
+  var hoaState = null;
+  var range = function (a, b, step) { var out = []; for (var i = a; i <= b; i += step || 1) out.push(i); return out; };
+  var options = function (list, sel, fmt) { return list.map(function (v) { return '<option value="' + v + '"' + (String(v) === String(sel) ? " selected" : "") + ">" + (fmt ? fmt(v) : v) + "</option>"; }).join(""); };
+  var dayLabel = function (iso) { return new Intl.DateTimeFormat("en-US", { timeZone: NP.TZ, weekday: "short", month: "short", day: "numeric" }).format(new Date(iso)); };
+
+  function loadHoa() {
+    var s = scope();
+    var list = $('[data-bind="group-days"]');
+    if (s === null) { list.innerHTML = '<p class="muted">Choose a provider at the top to see their HOA settings.</p>'; return; }
+    NP.api("GET", "/api/my/hoa" + s).then(function (res) { hoaState = res; renderHoa(); }, function (err) { toast(err.message, true); });
+  }
+  function renderHoa() {
+    var st = hoaState.settings;
+    var f = $('[data-form="hoa"]');
+    f.enabled.checked = st.enabled;
+    var res = st.resident_pct || 10, grp = st.group_pct || 15, min = st.group_min || 4;
+    f.resident_pct.innerHTML = options(range(10, 30), res, function (v) { return v + "% off"; });
+    f.group_pct.innerHTML = options(range(10, 40), grp, function (v) { return v + "% off"; });
+    f.group_min.innerHTML = options(range(3, 15), min, function (v) { return v + " homes"; });
+    $("[data-hoa-fields]").hidden = !st.enabled && !f.enabled.checked;
+    hoaExample();
+    var gf = $('[data-form="group-day"]');
+    gf.hidden = !st.enabled;
+    gf.community.innerHTML = hoaState.communities.length ? hoaState.communities.map(function (c) { return '<option value="' + esc(c.slug) + '">' + esc(c.name) + " (" + esc(c.area_name) + ")</option>"; }).join("") : '<option value="">No HOAs in your neighborhoods yet</option>';
+    gf.service.innerHTML = hoaState.services.map(function (sv) { return '<option value="' + esc(sv.slug) + '">' + esc(sv.name) + (sv.price_cents != null ? " · " + NP.money(sv.price_cents) : " · no price yet") + "</option>"; }).join("");
+    gf.min_homes.value = st.group_min || "";
+    if (!gf.date.value) { var d = new Date(Date.now() + 7 * 864e5); gf.date.value = NP.dateKey(d.toISOString()); }
+    gdPreview();
+    var gds = hoaState.groupDays;
+    $('[data-bind="group-days"]').innerHTML = !st.enabled ? '<p class="muted">Join the program above to open group days.</p>'
+      : gds.length ? gds.map(function (g) {
+        var past = new Date(g.ends_at) < new Date();
+        return '<article class="gd-card' + (g.status === "cancelled" ? " is-cancelled" : "") + '"><h3>' + esc(g.service.name) + " · " + esc(g.community.name) + "</h3>" +
+          '<p class="gd-when">' + esc(dayLabel(g.starts_at)) + " · " + esc(NP.time(g.starts_at)) + "–" + esc(NP.time(g.ends_at)) + (g.status === "cancelled" ? " · cancelled" : past ? " · done" : "") + "</p>" +
+          '<div class="gd-meter' + (g.unlocked ? " is-on" : "") + '"><i style="width:' + Math.max(4, Math.min(100, Math.round(g.booked / g.min_homes * 100))) + '%"></i></div>' +
+          '<p class="gd-progress">' + g.booked + " of " + g.min_homes + " homes booked" + (g.unlocked ? " · <strong>group price on</strong>" : "") +
+          " · resident " + NP.money(g.resident_price_cents) + " → group " + NP.money(g.group_price_cents) + "</p>" +
+          (g.common_area_job ? '<p class="gd-bonus">Free for the community: ' + esc(g.common_area_job) + "</p>" : "") +
+          (g.status === "open" && !past ? '<div class="gd-foot"><span></span><button type="button" class="btn btn-ghost btn-sm danger" data-gd-cancel="' + g.id + '">Cancel group day</button></div>' : "") +
+          "</article>";
+      }).join("") : '<p class="muted">No group days yet. Open your first one below.</p>';
+    $('[data-bind="hoa-communities"]').innerHTML = st.enabled && hoaState.communities.some(function (c) { return c.guidelines; })
+      ? '<h3 class="mt-m">Community guidelines</h3>' + hoaState.communities.filter(function (c) { return c.guidelines; }).map(function (c) {
+        return "<details><summary><strong>" + esc(c.name) + "</strong></summary><p>" + esc(c.guidelines) + "</p></details>";
+      }).join("") : "";
+  }
+  function hoaExample() {
+    var f = $('[data-form="hoa"]');
+    var on = f.enabled.checked;
+    $("[data-hoa-fields]").hidden = !on;
+    var r = Number(f.resident_pct.value), g = Number(f.group_pct.value), m = Number(f.group_min.value);
+    $("[data-hoa-example]").textContent = on
+      ? "On a $200 job: residents pay " + NP.money(20000 - r * 200) + ". On a group day, once " + m + " homes book, everyone pays " + NP.money(20000 - g * 200) + ", and you work one street with no driving in between."
+      : "You're not in the HOA program. Residents can still book you at your regular price.";
+  }
+  function gdPreview() {
+    var gf = $('[data-form="group-day"]');
+    var sv = (hoaState.services || []).find(function (x) { return x.slug === gf.service.value; });
+    var st = hoaState.settings;
+    $("[data-gd-preview]").textContent = sv && sv.price_cents != null && st.enabled
+      ? "Residents pay from " + NP.money(Math.round(sv.price_cents * (100 - st.resident_pct) / 100)) + " until " + (gf.min_homes.value || st.group_min) + " homes book, then everyone pays from " + NP.money(Math.round(sv.price_cents * (100 - st.group_pct) / 100)) + ". The window is held on your calendar for that community only."
+      : sv ? "This service needs a price first. Ask us to set it." : "";
+  }
+  $('[data-form="hoa"]').addEventListener("change", hoaExample);
+  $('[data-form="hoa"]').addEventListener("submit", function (e) {
+    e.preventDefault();
+    var f = e.target;
+    var body = { enabled: f.enabled.checked, resident_pct: Number(f.resident_pct.value), group_pct: Number(f.group_pct.value), group_min: Number(f.group_min.value) };
+    if (body.enabled && body.group_pct < body.resident_pct) return toast("The group-day discount should be at least the resident discount.", true);
+    NP.api("PUT", "/api/my/hoa" + scope(), body).then(function (res) {
+      hoaState = res; renderHoa(); toast(body.enabled ? "Saved. Residents now see your discount." : "You've left the HOA program.");
+    }, function (err) { toast(err.message, true); });
+  });
+  $('[data-form="group-day"]').addEventListener("change", gdPreview);
+  $('[data-form="group-day"]').addEventListener("input", gdPreview);
+  $('[data-form="group-day"]').addEventListener("submit", function (e) {
+    e.preventDefault();
+    var f = e.target;
+    var st = $(".form-status", f);
+    st.className = "form-status";
+    var btn = $('button[type="submit"]', f);
+    btn.disabled = true;
+    NP.api("POST", "/api/my/group-days" + scope(), {
+      community: f.community.value, service: f.service.value, date: f.date.value, start: f.start.value, end: f.end.value,
+      min_homes: f.min_homes.value ? Number(f.min_homes.value) : null, common_area_job: f.common_area_job.value,
+    }).then(function () {
+      f.common_area_job.value = "";
+      toast("Group day open! We've let the HOA know so they can share it.");
+      loadHoa();
+      if (cal) cal.refetchEvents();
+    }, function (err) { st.className = "form-status err"; st.textContent = err.message; }).then(function () { btn.disabled = false; });
+  });
+  $('[data-bind="group-days"]').addEventListener("click", function (e) {
+    var b = e.target.closest("[data-gd-cancel]");
+    if (!b) return;
+    var card = b.closest(".gd-card");
+    if (!card.querySelector("[data-gd-confirm]")) {
+      card.insertAdjacentHTML("beforeend", '<div class="confirm-box" data-gd-confirm>Cancel this group day? Everyone booked on it is cancelled and emailed. <button class="btn btn-ghost btn-sm danger" data-gd-yes="' + b.getAttribute("data-gd-cancel") + '">Yes, cancel it</button></div>');
+      return;
+    }
+  });
+  $('[data-bind="group-days"]').addEventListener("click", function (e) {
+    var b = e.target.closest("[data-gd-yes]");
+    if (!b) return;
+    b.disabled = true;
+    NP.api("POST", "/api/my/group-days/" + b.getAttribute("data-gd-yes") + "/cancel", {}).then(function (r) {
+      toast("Group day cancelled" + (r.cancelledBookings ? ". " + r.cancelledBookings + " resident" + (r.cancelledBookings === 1 ? " was" : "s were") + " emailed." : "."));
+      loadHoa();
+      if (cal) cal.refetchEvents();
+    }, function (err) { toast(err.message, true); b.disabled = false; });
+  });
+
+  // --- communities (admin) -------------------------------------------------------------------
+  var communities = [];
+  function loadCommunities() {
+    if (!isAdmin()) return;
+    Promise.all([NP.api("GET", "/api/admin/communities"), allAreas.length ? Promise.resolve({ areas: allAreas }) : NP.api("GET", "/api/admin/areas")]).then(function (r) {
+      communities = r[0].communities;
+      allAreas = r[1].areas;
+      renderCommunities();
+    }, function (err) { toast(err.message, true); });
+  }
+  function renderCommunities() {
+    var f = $('[data-form="community"]');
+    var keepArea = f.area.value;
+    f.area.innerHTML = allAreas.map(function (a) { return '<option value="' + esc(a.slug) + '">' + esc(a.name) + "</option>"; }).join("");
+    if (keepArea) f.area.value = keepArea;
+    $('[data-bind="communities"]').innerHTML = communities.length ? communities.map(function (c) {
+      return '<div class="community-card"><div><strong>' + esc(c.name) + '</strong> <span class="muted">· ' + esc(c.area_name) + (c.homes ? " · " + c.homes + " homes" : "") + "</span>" +
+        (c.active ? "" : ' <span class="tag-declined">Inactive</span>') + "</div>" +
+        '<div>Join code <span class="code-box">' + esc(c.join_code) + "</span>" + (c.contact_name || c.contact_email ? ' <span class="muted">· ' + esc([c.contact_name, c.contact_email].filter(Boolean).join(", ")) + "</span>" : "") + "</div>" +
+        '<div class="stat-grid">' +
+        '<div class="stat"><b>' + c.bookings + "</b><span>resident bookings</span></div>" +
+        '<div class="stat"><b>' + NP.money(c.paid_cents) + "</b><span>paid by residents</span></div>" +
+        '<div class="stat"><b>' + NP.money(c.give_back_cents) + "</b><span>give-back earned (" + (c.give_back_bps / 100) + "%)</span></div>" +
+        '<div class="stat"><b>' + NP.money(c.owed_cents) + "</b><span>owed to the HOA</span></div></div>" +
+        '<div class="btn-row"><button type="button" class="btn btn-ghost btn-sm" data-cm-link="' + esc(c.join_code) + '">Copy resident link</button>' +
+        '<button type="button" class="btn btn-ghost btn-sm" data-cm-report="' + esc(c.slug) + '">' + (c.has_report ? "New board report link" : "Board report link") + "</button>" +
+        '<button type="button" class="btn btn-ghost btn-sm" data-cm-payout="' + esc(c.slug) + '">Record a give-back payment</button>' +
+        '<button type="button" class="btn btn-ghost btn-sm" data-cm-edit="' + esc(c.slug) + '">Edit</button></div>' +
+        '<div data-cm-panel="' + esc(c.slug) + '"></div></div>';
+    }).join("") : '<p class="muted">No communities yet. Add your first HOA below.</p>';
+  }
+  function copy(text, done) {
+    (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(function () { toast(done); }, function () { openSheet('<h2>Copy this link</h2><div class="copy-row"><input readonly value="' + esc(text) + '"></div>'); });
+  }
+  $('[data-bind="communities"]').addEventListener("click", function (e) {
+    var b = e.target.closest("button");
+    if (!b) return;
+    if (b.hasAttribute("data-cm-link")) copy(location.origin + "/community/?code=" + encodeURIComponent(b.getAttribute("data-cm-link")), "Resident link copied. Share it in the HOA newsletter.");
+    if (b.hasAttribute("data-cm-report")) {
+      NP.api("POST", "/api/admin/communities/" + encodeURIComponent(b.getAttribute("data-cm-report")) + "/report-link", {}).then(function (r) {
+        openSheet('<h2>Board report link</h2><p>Send this to the board. It shows bookings, savings and give-back, never residents\' names or addresses. Making a new link turns this one off.</p>' +
+          '<div class="copy-row"><input readonly value="' + esc(r.url) + '" aria-label="Report link"><button class="btn btn-dark btn-sm" data-copy>Copy</button></div>');
+        $("[data-copy]", sheet).onclick = function () { copy(r.url, "Report link copied."); };
+        loadCommunities();
+      }, function (err) { toast(err.message, true); });
+    }
+    if (b.hasAttribute("data-cm-payout")) {
+      var slug = b.getAttribute("data-cm-payout");
+      var c = communities.find(function (x) { return x.slug === slug; });
+      var panel = $('[data-cm-panel="' + slug + '"]');
+      panel.innerHTML = '<div class="confirm-box"><p><strong>Record a give-back payment to ' + esc(c.name) + "</strong> <span class=\"muted\">(owed " + NP.money(c.owed_cents) + ")</span></p>" +
+        '<div class="form-grid"><div class="field"><label>Amount ($)</label><input data-k="amount" inputmode="decimal" value="' + (c.owed_cents / 100).toFixed(2) + '"></div>' +
+        '<div class="field"><label>Paid on</label><input data-k="paid_on" type="date" value="' + NP.todayLocal() + '"></div>' +
+        '<div class="field full"><label>Note <span class="hint">(check number, etc.)</span></label><input data-k="note" maxlength="200"></div></div>' +
+        '<div class="btn-row mt-s"><button class="btn btn-primary btn-sm" data-pay-yes>Save payment</button><button class="btn btn-ghost btn-sm" data-pay-no>Cancel</button></div></div>';
+      $("[data-pay-no]", panel).onclick = function () { panel.innerHTML = ""; };
+      $("[data-pay-yes]", panel).onclick = function () {
+        var v = function (k) { return $('[data-k="' + k + '"]', panel).value; };
+        NP.api("POST", "/api/admin/communities/" + encodeURIComponent(slug) + "/payouts", { amount: Number(String(v("amount")).replace(/[$,\s]/g, "")), paid_on: v("paid_on"), note: v("note") }).then(function (r) {
+          communities = r.communities; renderCommunities(); toast("Payment recorded. It shows on the board's report.");
+        }, function (err) { toast(err.message, true); });
+      };
+    }
+    if (b.hasAttribute("data-cm-edit")) {
+      var cm = communities.find(function (x) { return x.slug === b.getAttribute("data-cm-edit"); });
+      var f = $('[data-form="community"]');
+      f.name.value = cm.name; f.area.value = cm.area; f.join_code.value = cm.join_code; f.homes.value = cm.homes || "";
+      f.give_back_pct.value = cm.give_back_bps / 100; f.contact_name.value = cm.contact_name || ""; f.contact_email.value = cm.contact_email || "";
+      f.guidelines.value = cm.guidelines || ""; f.active.checked = cm.active;
+      f.setAttribute("data-editing", cm.slug);
+      $('[data-bind="community-form-title"]').textContent = "Edit " + cm.name;
+      $('[data-act="community-new"]').hidden = false;
+      f.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  });
+  function resetCommunityForm() {
+    var f = $('[data-form="community"]');
+    f.reset(); f.removeAttribute("data-editing");
+    $('[data-bind="community-form-title"]').textContent = "Add a community";
+    $('[data-act="community-new"]').hidden = true;
+  }
+  $('[data-act="community-new"]').addEventListener("click", resetCommunityForm);
+  $('[data-form="community"]').addEventListener("submit", function (e) {
+    e.preventDefault();
+    var f = e.target;
+    var st = $(".form-status", f);
+    st.className = "form-status";
+    var body = { name: f.name.value, area: f.area.value, join_code: f.join_code.value, homes: f.homes.value, give_back_pct: f.give_back_pct.value,
+      contact_name: f.contact_name.value, contact_email: f.contact_email.value, guidelines: f.guidelines.value, active: f.active.checked };
+    if (f.getAttribute("data-editing")) body.slug = f.getAttribute("data-editing");
+    NP.api("POST", "/api/admin/communities", body).then(function (r) {
+      communities = r.communities; renderCommunities(); resetCommunityForm(); toast("Community saved.");
+    }, function (err) { st.className = "form-status err"; st.textContent = err.message; });
+  });
 
   // --- what's new --------------------------------------------------------------------------
   var INBOX_LABEL = { created: "New booking", rescheduled: "Moved", cancelled: "Cancelled" };

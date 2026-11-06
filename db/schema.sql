@@ -224,6 +224,87 @@ CREATE TABLE IF NOT EXISTS stripe_events (
   received_at  timestamptz NOT NULL DEFAULT now()
 );
 
+-- HOA program -------------------------------------------------------------------
+-- A community (HOA) belongs to one area. Residents unlock resident pricing with the
+-- community's join code, which the HOA shares in its newsletter.
+CREATE TABLE IF NOT EXISTS communities (
+  id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  slug               text NOT NULL UNIQUE,
+  name               text NOT NULL,
+  area_id            uuid NOT NULL REFERENCES areas(id),
+  join_code          text NOT NULL,
+  homes              integer CHECK (homes IS NULL OR homes BETWEEN 1 AND 100000),
+  -- share of each paid resident booking given back to the association's fund (100 = 1%)
+  give_back_bps      integer NOT NULL DEFAULT 100 CHECK (give_back_bps BETWEEN 0 AND 1000),
+  guidelines         text,
+  contact_name       text,
+  contact_email      text,
+  report_token_hash  text,
+  active             boolean NOT NULL DEFAULT true,
+  created_at         timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS communities_code_key ON communities (upper(join_code));
+CREATE UNIQUE INDEX IF NOT EXISTS communities_report_key ON communities (report_token_hash) WHERE report_token_hash IS NOT NULL;
+
+-- Pros in the HOA program: a resident discount, a deeper group-day discount, and the
+-- fewest homes a group day needs. NULL resident_pct = not in the program.
+ALTER TABLE vendors ADD COLUMN IF NOT EXISTS hoa_resident_pct smallint;
+ALTER TABLE vendors ADD COLUMN IF NOT EXISTS hoa_group_pct smallint;
+ALTER TABLE vendors ADD COLUMN IF NOT EXISTS hoa_group_min smallint;
+ALTER TABLE vendors DROP CONSTRAINT IF EXISTS vendors_hoa_check;
+ALTER TABLE vendors ADD CONSTRAINT vendors_hoa_check CHECK (
+  hoa_resident_pct IS NULL OR (
+    hoa_resident_pct BETWEEN 10 AND 50 AND hoa_group_pct BETWEEN hoa_resident_pct AND 60 AND hoa_group_min BETWEEN 3 AND 50));
+
+-- A group day: one pro, one service, one community, one window. Residents book slots in
+-- the window; once min_homes have booked, everyone on the day pays the group price.
+CREATE TABLE IF NOT EXISTS group_days (
+  id                    uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  community_id          uuid NOT NULL REFERENCES communities(id),
+  vendor_id             uuid NOT NULL REFERENCES vendors(id),
+  service_id            uuid NOT NULL REFERENCES services(id),
+  starts_at             timestamptz NOT NULL,
+  ends_at               timestamptz NOT NULL,
+  min_homes             smallint NOT NULL CHECK (min_homes BETWEEN 2 AND 50),
+  list_price_cents      integer NOT NULL CHECK (list_price_cents >= 0),
+  resident_price_cents  integer NOT NULL CHECK (resident_price_cents >= 0),
+  group_price_cents     integer NOT NULL CHECK (group_price_cents >= 0),
+  common_area_job       text,
+  status                text NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'cancelled')),
+  unlocked_at           timestamptz,
+  created_at            timestamptz NOT NULL DEFAULT now(),
+  CHECK (ends_at > starts_at)
+);
+CREATE INDEX IF NOT EXISTS group_days_community ON group_days (community_id, starts_at);
+CREATE INDEX IF NOT EXISTS group_days_vendor ON group_days (vendor_id, starts_at);
+
+-- The window is held on the pro's calendar as time off tied to the group day, so regular
+-- customers can't take it; only that group day's bookings may use it.
+ALTER TABLE time_off ADD COLUMN IF NOT EXISTS group_day_id uuid REFERENCES group_days(id) ON DELETE CASCADE;
+
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS community_id uuid REFERENCES communities(id);
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS group_day_id uuid REFERENCES group_days(id);
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS list_price_cents integer;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS price_kind text;
+ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_price_kind_check;
+ALTER TABLE bookings ADD CONSTRAINT bookings_price_kind_check CHECK (price_kind IS NULL OR price_kind IN ('resident', 'group'));
+CREATE INDEX IF NOT EXISTS bookings_community ON bookings (community_id, starts_at) WHERE community_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS bookings_group_day ON bookings (group_day_id) WHERE group_day_id IS NOT NULL;
+
+-- Homeowners remember their community after entering the code once
+ALTER TABLE users ADD COLUMN IF NOT EXISTS community_id uuid REFERENCES communities(id) ON DELETE SET NULL;
+
+-- Give-back actually paid to each association
+CREATE TABLE IF NOT EXISTS community_payouts (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  community_id  uuid NOT NULL REFERENCES communities(id),
+  amount_cents  integer NOT NULL CHECK (amount_cents > 0),
+  paid_on       date NOT NULL,
+  note          text,
+  created_at    timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS community_payouts_community ON community_payouts (community_id);
+
 INSERT INTO areas (slug, name, zips, sort) VALUES
   ('carmel-valley', 'Carmel Valley', '{92130}', 1),
   ('torrey-highlands', 'Torrey Highlands', '{92129}', 2),

@@ -46,7 +46,9 @@
       <button type="button" role="tab" data-tab="services">Services</button>
       <button type="button" role="tab" data-tab="payouts" data-payments hidden>Payouts</button>
       <button type="button" role="tab" data-tab="sync">Phone calendar</button>
+      <button type="button" role="tab" data-tab="hoa">HOA program</button>
       <button type="button" role="tab" data-tab="vendors" data-admin hidden>Providers</button>
+      <button type="button" role="tab" data-tab="communities" data-admin hidden>Communities</button>
     </nav>
 
     <div class="toast" data-toast role="status" aria-live="polite" hidden></div>
@@ -143,6 +145,72 @@
         <details><summary><strong>Google Calendar</strong></summary><p>On a computer: calendar.google.com → Other calendars → + → From URL. Paste the link. It then appears on your phone too.</p></details>
         <details><summary><strong>Outlook</strong></summary><p>Add calendar → Subscribe from web. Paste the link.</p></details>
         <p class="muted mt-m">Keep this link private: it shows your customers' names and addresses. If it gets shared by mistake, <button type="button" class="linklike" data-act="rotate-ics">make a new link</button> and the old one stops working.</p>
+      </div>
+    </div>
+
+    <!-- HOA program -->
+    <div class="tab-panel" data-panel="hoa" hidden>
+      <div class="panel-card">
+        <h2>HOA program</h2>
+        <p class="muted">HOA residents book you through their community. You give residents a discount, and a deeper one on <strong>group days</strong>: one day, one neighborhood, back-to-back homes with no driving in between. No lead fees, ever.</p>
+        <form class="hoa-form" data-form="hoa" novalidate>
+          <label class="day-toggle"><input type="checkbox" name="enabled"> I'm in the HOA program</label>
+          <div class="form-grid rules-grid" data-hoa-fields>
+            <div class="field"><label for="hoa-res">Resident discount</label><select id="hoa-res" name="resident_pct"></select></div>
+            <div class="field"><label for="hoa-grp">Group-day discount</label><select id="hoa-grp" name="group_pct"></select></div>
+            <div class="field"><label for="hoa-min">Fewest homes for a group day</label><select id="hoa-min" name="group_min"></select></div>
+          </div>
+          <p class="muted mt-s" data-hoa-example></p>
+          <div class="form-foot"><button class="btn btn-primary" type="submit">Save</button></div>
+        </form>
+      </div>
+      <div class="panel-card">
+        <h2>Group days</h2>
+        <p class="muted">Open a day for one community. Residents book slots in it; when your minimum books, everyone (you included) gets the group price on a full, efficient day. Offering a small free job for the community, like re-screening the clubhouse, makes boards love you.</p>
+        <div class="gd-list" data-bind="group-days"></div>
+        <form class="mt-m" data-form="group-day" novalidate>
+          <h3>Open a group day</h3>
+          <div class="form-grid">
+            <div class="field"><label for="gd-community">Community</label><select id="gd-community" name="community"></select></div>
+            <div class="field"><label for="gd-service">Service</label><select id="gd-service" name="service"></select></div>
+            <div class="field"><label for="gd-date">Date</label><input id="gd-date" name="date" type="date"></div>
+            <div class="field"><label for="gd-min">Fewest homes <span class="hint">(to unlock the group price)</span></label><input id="gd-min" name="min_homes" type="number" min="3" max="50"></div>
+            <div class="field"><label for="gd-start">From</label><input id="gd-start" name="start" type="time" value="08:00" step="1800"></div>
+            <div class="field"><label for="gd-end">To</label><input id="gd-end" name="end" type="time" value="16:00" step="1800"></div>
+            <div class="field full"><label for="gd-bonus">Free job for the community <span class="hint">(optional, recommended)</span></label><input id="gd-bonus" name="common_area_job" maxlength="200" placeholder="e.g. Re-screen the clubhouse windows"></div>
+          </div>
+          <p class="muted mt-s" data-gd-preview></p>
+          <div class="form-foot"><button class="btn btn-primary" type="submit">Open group day</button></div>
+          <div class="form-status" role="alert"></div>
+        </form>
+        <div data-bind="hoa-communities"></div>
+      </div>
+    </div>
+
+    <!-- Admin: communities -->
+    <div class="tab-panel" data-panel="communities" hidden>
+      <div class="panel-card">
+        <h2>Communities</h2>
+        <p class="muted">Each HOA gets a join code for residents, a private report link for the board, and a give-back from our fee on every paid resident booking. Never pay a board member or manager: give-back goes to the association only.</p>
+        <div data-bind="communities"></div>
+      </div>
+      <div class="panel-card">
+        <h2 data-bind="community-form-title">Add a community</h2>
+        <form data-form="community" novalidate>
+          <div class="form-grid">
+            <div class="field"><label for="cm-name">HOA name</label><input id="cm-name" name="name" required maxlength="120"></div>
+            <div class="field"><label for="cm-area">Neighborhood</label><select id="cm-area" name="area"></select></div>
+            <div class="field"><label for="cm-code">Join code <span class="hint">(leave blank to make one)</span></label><input id="cm-code" name="join_code" maxlength="24" autocapitalize="characters"></div>
+            <div class="field"><label for="cm-homes">Homes <span class="hint">(roughly)</span></label><input id="cm-homes" name="homes" type="number" min="1"></div>
+            <div class="field"><label for="cm-gb">Give-back to the association (%)</label><input id="cm-gb" name="give_back_pct" inputmode="decimal" value="1"></div>
+            <div class="field"><label for="cm-cname">Board / manager contact</label><input id="cm-cname" name="contact_name" maxlength="120"></div>
+            <div class="field full"><label for="cm-cemail">Contact email <span class="hint">(gets new group days)</span></label><input id="cm-cemail" name="contact_email" type="email"></div>
+            <div class="field full"><label for="cm-rules">Community guidelines for pros <span class="hint">(screen colors, work hours, gate access, parking)</span></label><textarea id="cm-rules" name="guidelines" maxlength="1500"></textarea></div>
+            <label class="day-toggle"><input type="checkbox" name="active" checked> Active</label>
+          </div>
+          <div class="form-foot"><button class="btn btn-primary" type="submit">Save community</button><button type="button" class="btn btn-ghost btn-sm" data-act="community-new" hidden>Add a different one</button></div>
+          <div class="form-status" role="alert"></div>
+        </form>
       </div>
     </div>
 

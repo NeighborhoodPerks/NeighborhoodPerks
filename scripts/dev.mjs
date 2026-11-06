@@ -64,6 +64,23 @@ for (const [svc, d, h, name, address] of sample) {
   } catch (e) { /* demo slot might fall outside hours on some weekdays */ }
 }
 
+// HOA program: one community, two pros in the program, and a group day that's filling up
+const { upsertCommunity, setVendorHoa, createGroupDay, resolveCommunity, reportLink } = await import("../lib/hoa.mjs");
+await upsertCommunity({ name: "Carmel Ridge HOA", area: "carmel-valley", join_code: "CARMEL-DEMO", homes: 240, give_back_pct: 1,
+  contact_name: "Pat (board)", contact_email: "board@demo.test", guidelines: "Charcoal screen mesh only. Work hours 8am–5pm. Check in at the front gate." });
+const ids = Object.fromEntries((await db().query(`SELECT email, id FROM vendors`)).map((r) => [r.email, r.id]));
+await setVendorHoa(ids["maria@demo.test"], { enabled: true, resident_pct: 10, group_pct: 20, group_min: 4 });
+await setVendorHoa(ids["devon@demo.test"], { enabled: true, resident_pct: 10, group_pct: 15, group_min: 3 });
+const gdDay = t0.plus({ days: 8 });
+const gd = await createGroupDay(ids["maria@demo.test"], { community: "carmel-ridge-hoa", service: "window-rescreening",
+  date: gdDay.toISODate(), start: "08:00", end: "16:00", common_area_job: "Re-screen the clubhouse windows" });
+const community = await resolveCommunity({ code: "CARMEL-DEMO" });
+for (const [h, name] of [[8, "Ana Ridge"], [10, "Ben Ridge"]]) {
+  await createBooking({ groupDayId: gd.id, community, start: gdDay.set({ hour: h }).toJSDate(), name, phone: "(619) 555-0101",
+    email: name.split(" ")[0].toLowerCase() + "@example.com", address: `${h} Ridge Ct, San Diego`, neighborhood: "Carmel Valley", notes: null });
+}
+const report = await reportLink("carmel-ridge-hoa");
+
 // --- server ------------------------------------------------------------------------
 const TYPES = { ".html": "text/html; charset=utf-8", ".css": "text/css", ".js": "text/javascript", ".svg": "image/svg+xml",
   ".png": "image/png", ".jpg": "image/jpeg", ".xml": "application/xml", ".txt": "text/plain", ".ics": "text/calendar" };
@@ -99,5 +116,7 @@ createServer(async (req, res) => {
   console.log(`  Book:       http://localhost:${PORT}/book/`);
   console.log(`  Dashboard:  http://localhost:${PORT}/vendor/`);
   console.log(`  Admin login:     admin@demo.test / ${PASSWORD}`);
-  console.log(`  Provider logins: maria@demo.test, devon@demo.test, sam@demo.test / ${PASSWORD}\n`);
+  console.log(`  Provider logins: maria@demo.test, devon@demo.test, sam@demo.test / ${PASSWORD}`);
+  console.log(`  HOA resident page: http://localhost:${PORT}/community/?code=CARMEL-DEMO`);
+  console.log(`  HOA board report:  ${report.url}\n`);
 });

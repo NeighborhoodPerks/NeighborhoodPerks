@@ -41,6 +41,39 @@
     $('[data-bind="past"]').innerHTML = past.length ? past.map(card).join("") : '<p class="muted">Nothing here yet.</p>';
   }
 
+  // --- HOA community: resident pricing everywhere they book ---------------------------------
+  function rememberCommunity(v) { try { v ? localStorage.setItem("np-community", JSON.stringify(v)) : localStorage.removeItem("np-community"); } catch (e) {} }
+  function showCommunity(p) {
+    var f = $('[data-form="community"]');
+    var line = $('[data-bind="community-status"]');
+    if (p.community_name) {
+      rememberCommunity({ code: p.community_code, name: p.community_name, area: p.community_area, areaName: p.community_area_name });
+      line.innerHTML = "Resident pricing is on for <strong>" + esc(p.community_name) + '</strong>. <a href="/community/">See group days</a> · <button type="button" class="linklike" data-community-remove>Remove</button>';
+      f.code.value = "";
+      f.code.placeholder = "Change community code";
+    } else {
+      line.textContent = "Live in a partner HOA? Add your community's code for resident pricing and group days.";
+      f.code.placeholder = "Community code";
+    }
+  }
+  function saveCommunity(code) {
+    var f = $('[data-form="community"]');
+    var s = $(".form-status", f);
+    return NP.api("PUT", "/api/account/community", { code: code }).then(function () {
+      if (!code) rememberCommunity(null);
+      s.className = "form-status ok"; s.textContent = code ? "Saved. Resident pricing applies when you book." : "Removed.";
+      return load();
+    }, function (err) { s.className = "form-status err"; s.textContent = err.message; });
+  }
+  $('[data-form="community"]').addEventListener("submit", function (e) {
+    e.preventDefault();
+    var code = e.target.code.value.trim();
+    if (code) saveCommunity(code);
+  });
+  $('[data-form="community"]').addEventListener("click", function (e) {
+    if (e.target.closest("[data-community-remove]")) saveCommunity("");
+  });
+
   function load() {
     return NP.api("GET", "/api/account").then(function (res) {
       var p = res.profile;
@@ -53,6 +86,7 @@
       f.name.value = p.name || ""; f.phone.value = p.phone || ""; f.address.value = p.address || "";
       f.area.dataset.want = p.area || "";
       f.area.value = p.area || "";
+      showCommunity(p);
       render();
     }, function (err) {
       if (err.status === 401 || err.status === 403) { location.replace("/signin/?next=/account/"); return; }

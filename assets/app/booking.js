@@ -15,6 +15,8 @@
     pro: null,
     service: null,       // { slug, name, price_cents }
     start: null,
+    community: null,     // { code, name, area, areaName } once a resident has entered their HOA's code
+    groupDay: null,      // booking a slot on a community group day
   };
   var steps = ["where", "pros", "time", "details", "done"];
   var requestBox = document.querySelector("[data-request]");
@@ -58,6 +60,35 @@
     return day + ", " + NP.time(iso);
   }
 
+  // --- HOA residents ---------------------------------------------------------------------
+  function savedCommunity() { try { return JSON.parse(localStorage.getItem("np-community") || "null"); } catch (e) { return null; } }
+  function rememberCommunity(v) { try { v ? localStorage.setItem("np-community", JSON.stringify(v)) : localStorage.removeItem("np-community"); } catch (e) {} }
+  /** The resident discount applies in the community's own neighborhood, with pros in the program. */
+  var residentHere = function () { return !!(state.community && state.area && state.area.slug === state.community.area); };
+  var residentPrice = function (p, cents) { return cents == null || !p.hoa || !residentHere() ? cents : Math.round(cents * (100 - p.hoa.resident_pct) / 100); };
+  function priceHtml(p, cents) {
+    var r = residentPrice(p, cents);
+    return r !== cents ? NP.money(r) + '<span class="price-was">' + NP.money(cents) + "</span>" : NP.money(cents);
+  }
+  var communityReady = (function () {
+    var code = params.get("code");
+    var stored = savedCommunity();
+    if (!code) { state.community = stored && stored.code ? stored : null; return Promise.resolve(); }
+    if (stored && stored.code === code.trim().toUpperCase()) { state.community = stored; return Promise.resolve(); }
+    return NP.api("GET", "/api/community?code=" + encodeURIComponent(code)).then(function (res) {
+      state.community = { code: code.trim().toUpperCase(), name: res.community.name, area: res.community.area.slug, areaName: res.community.area.name };
+      rememberCommunity(state.community);
+    }, function () { state.community = null; });
+  })();
+  function communityBanner() {
+    var box = $("[data-community-banner]");
+    if (!box) return;
+    if (!residentHere()) { box.hidden = true; return; }
+    box.hidden = false;
+    box.innerHTML = "<span>Resident pricing for <strong>" + esc(state.community.name) + "</strong> is on. Pros marked below take it off automatically.</span>" +
+      '<a class="linklike" href="/community/">Group days</a>';
+  }
+
   // --- 1. location -----------------------------------------------------------------
   var whereStatus = $("[data-where-status]");
   function whereErr(msg) { whereStatus.className = "form-status err"; whereStatus.innerHTML = msg; }
@@ -77,7 +108,7 @@
     var remembered = params.get("area");
     try { remembered = remembered || localStorage.getItem("np-area"); } catch (e) {}
     var match = areas.find(function (a) { return a.slug === remembered; });
-    if (match) chooseArea(match);
+    if (match && !params.get("groupday")) communityReady.then(function () { chooseArea(match); });
   }, function (err) { if (err.offline) offline(); else whereErr(esc(err.message)); });
 
   $("[data-areas]").addEventListener("click", function (e) {
@@ -139,6 +170,7 @@
   }
 
   function renderPros() {
+    communityBanner();
     var f = state.filter;
     var list = state.pros.filter(function (p) { return !f || p.services.some(function (s) { return s.slug === f; }); });
     if (!list.length) {
@@ -155,8 +187,9 @@
         '<div><h3>' + esc(p.business_name || p.name) + "</h3>" + (p.business_name ? '<p class="muted pro-person">' + esc(p.name) + "</p>" : "") + "</div></div>" +
         (p.bio ? '<p class="pro-bio">' + esc(p.bio) + "</p>" : "") +
         '<ul class="pro-svcs">' + svcs.map(function (s) {
-          return "<li><span>" + esc(s.name) + "</span>" + (s.price_cents != null ? "<strong>from " + NP.money(s.price_cents) + "</strong>" : "") + "</li>";
+          return "<li><span>" + esc(s.name) + "</span>" + (s.price_cents != null ? "<strong>from " + priceHtml(p, s.price_cents) + "</strong>" : "") + "</li>";
         }).join("") + "</ul>" +
+        (p.hoa && residentHere() ? '<p class="mb-0"><span class="price-tag">' + p.hoa.resident_pct + "% resident discount</span></p>" : "") +
         '<div class="pro-foot"><span class="pro-next' + (next ? "" : " is-none") + '">' + (next ? "Next opening: <strong>" + esc(shortWhen(next)) + "</strong>" : "No openings in the next 3 weeks") + "</span>" +
         '<button type="button" class="btn btn-primary btn-sm" data-pro="' + esc(p.id) + '"' + (next ? "" : " disabled") + ">See times</button></div>" +
         "</article>";
@@ -180,7 +213,7 @@
     $('[data-bind="pro-head"]').innerHTML = avatar(p, 52) + "<div><strong>" + esc(p.business_name || p.name) + "</strong>" +
       '<span class="muted">' + esc(p.business_name ? p.name + " · " : "") + esc(state.area.name) + "</span></div>";
     svcSelect.innerHTML = p.services.map(function (s) {
-      return '<option value="' + esc(s.slug) + '"' + (s.slug === pick.slug ? " selected" : "") + ">" + esc(s.name) + (s.price_cents != null ? " · from " + NP.money(s.price_cents) : "") + "</option>";
+      return '<option value="' + esc(s.slug) + '"' + (s.slug === pick.slug ? " selected" : "") + ">" + esc(s.name) + (s.price_cents != null ? " · from " + NP.money(residentPrice(p, s.price_cents)) : "") + "</option>";
     }).join("");
     $("[data-svc-pick]").hidden = p.services.length < 2;
     go("time");
@@ -232,9 +265,14 @@
   slotsBox.addEventListener("click", function (e) { if (e.target.closest("[data-go-pros]")) go("pros"); });
 
   function summary() {
-    return "<strong>" + esc(state.service.name) + "</strong><span>" + esc(NP.when(state.start)) + "</span>" +
-      '<span class="muted">With ' + esc(state.pro.business_name || state.pro.name) + "</span>" +
-      (state.service.price_cents != null ? '<span class="muted">From ' + NP.money(state.service.price_cents) + ", final price confirmed by your pro</span>" : "");
+    var g = state.groupDay;
+    var price = g
+      ? '<span class="muted">' + (g.unlocked || g.booked + 1 >= g.min_homes
+          ? "Group price: from " + NP.money(g.group_price_cents) + '<span class="price-was">' + NP.money(g.list_price_cents) + "</span>"
+          : "Resident price: from " + NP.money(g.resident_price_cents) + ". Drops to " + NP.money(g.group_price_cents) + " for everyone when " + g.min_homes + " homes book.") + "</span>"
+      : state.service.price_cents != null ? '<span class="muted">From ' + priceHtml(state.pro, state.service.price_cents) + (residentPrice(state.pro, state.service.price_cents) !== state.service.price_cents ? " (resident price)" : "") + ", final price confirmed by your pro</span>" : "";
+    return "<strong>" + esc(state.service.name) + (g ? " · group day" : "") + "</strong><span>" + esc(NP.when(state.start)) + "</span>" +
+      '<span class="muted">With ' + esc(g ? g.pro : state.pro.business_name || state.pro.name) + "</span>" + price;
   }
 
   // --- payments: card saved now, charged after the job ------------------------------------
@@ -288,6 +326,12 @@
       if (p.phone) form.elements.phone.value = p.phone;
       if (p.email) { form.elements.email.value = p.email; form.elements.email.readOnly = true; form.elements.email.classList.add("readonly"); }
       if (p.address) form.elements.address.value = p.address;
+      // Their saved HOA community: show resident prices (the server applies it either way)
+      if (p.community_code && !state.community) {
+        state.community = { code: p.community_code, name: p.community_name, area: p.community_area, areaName: p.community_area_name };
+        rememberCommunity(state.community);
+        if (state.area && state.pros.length) renderPros();
+      }
     }, function () {});
   }
 
@@ -303,10 +347,12 @@
       return;
     }
     var f = form.elements;
-    var body = {
-      vendor: state.pro.id, area: state.area.slug, service: state.service.slug, start: state.start, website: f.website.value,
-      name: f.name.value, phone: f.phone.value, email: f.email.value, address: f.address.value, neighborhood: state.area.name, notes: f.notes.value,
-    };
+    var body = state.groupDay
+      ? { group_day: state.groupDay.id, community_code: state.community.code, start: state.start, website: f.website.value,
+          name: f.name.value, phone: f.phone.value, email: f.email.value, address: f.address.value, neighborhood: state.community.areaName, notes: f.notes.value }
+      : { vendor: state.pro.id, area: state.area.slug, service: state.service.slug, start: state.start, website: f.website.value,
+          name: f.name.value, phone: f.phone.value, email: f.email.value, address: f.address.value, neighborhood: state.area.name, notes: f.notes.value };
+    if (!state.groupDay && residentHere()) body.community_code = state.community.code;
     var btn = form.querySelector('button[type="submit"]');
     btn.disabled = true;
     var label = btn.innerHTML;
@@ -321,7 +367,10 @@
       var b = res.booking;
       $('[data-bind="confirmation"]').innerHTML =
         "<strong>" + esc(b.service_name) + "</strong><span>" + esc(NP.when(b.starts_at)) + "</span><span>" + esc(b.address) + "</span>" +
-        '<span class="muted">With ' + esc(b.vendor_business || b.vendor_first_name) + ", who has been notified</span>";
+        '<span class="muted">With ' + esc(b.vendor_business || b.vendor_first_name) + ", who has been notified</span>" +
+        (b.price_kind && b.price_cents != null ? '<span class="muted">' + (b.price_kind === "group" ? "Group price" : "Resident price") + ": from " + NP.money(b.price_cents) +
+          (b.list_price_cents > b.price_cents ? '<span class="price-was">' + NP.money(b.list_price_cents) + "</span>" : "") + "</span>" : "") +
+        (res.groupUnlocked ? "<span><strong>You unlocked the group price for everyone on this group day!</strong></span>" : "");
       var a = $('[data-bind="manage-link"]');
       a.href = link; a.textContent = link;
       $('[data-bind="manage-btn"]').href = res.inAccount ? "/account/" : link;
@@ -333,6 +382,15 @@
     }, function (err) {
       status.className = "form-status err";
       status.textContent = err.message;
+      if (err.code === "invalid_community_code") { rememberCommunity(null); state.community = null; communityBanner(); }
+      if (err.code === "slot_taken" && state.groupDay) {
+        state.start = null;
+        loadGroupDay().then(function () {
+          go("time");
+          slotsBox.insertAdjacentHTML("afterbegin", '<p class="form-status err" style="display:block">Sorry, a neighbor just took that slot. Here\'s what\'s still open.</p>');
+        });
+        return;
+      }
       if (err.code === "slot_taken") {
         var key = NP.dateKey(state.start);
         state.start = null;
@@ -344,4 +402,51 @@
       }
     }).then(function () { btn.disabled = false; btn.innerHTML = label; });
   });
+
+  // --- group day: one pro, one day, residents pick a slot --------------------------------
+  var groupDayId = params.get("groupday");
+  function loadGroupDay() {
+    slotsBox.innerHTML = '<p class="muted">Loading open times…</p>';
+    return NP.api("GET", "/api/group-days/" + encodeURIComponent(groupDayId) + "?code=" + encodeURIComponent(state.community.code)).then(function (res) {
+      var g = res.groupDay;
+      state.groupDay = g;
+      state.service = { slug: g.service.slug, name: g.service.name };
+      state.area = { slug: state.community.area, name: state.community.areaName };
+      $('[data-bind="pro-head"]').innerHTML = "<div><strong>" + esc(g.service.name) + " group day</strong>" +
+        '<span class="muted">' + esc(res.community.name) + " · with " + esc(g.pro) + "</span></div>";
+      var left = Math.max(0, g.min_homes - g.booked);
+      var info = $("[data-group-info]");
+      info.hidden = false;
+      info.innerHTML = '<div class="gd-meter' + (g.unlocked ? " is-on" : "") + '"><i style="width:' + Math.max(4, Math.min(100, Math.round(g.booked / g.min_homes * 100))) + '%"></i></div>' +
+        '<p class="gd-progress mt-s">' + (g.unlocked ? "<strong>Group price unlocked:</strong> everyone pays from " + NP.money(g.group_price_cents) + "."
+          : g.booked + " of " + g.min_homes + " homes booked. " + left + " more and everyone pays from " + NP.money(g.group_price_cents) + " instead of " + NP.money(g.resident_price_cents) + ".") + "</p>";
+      $("[data-group-back]").href = "/community/?code=" + encodeURIComponent(state.community.code);
+      if (g.status !== "open") { slotsBox.innerHTML = '<p class="muted">This group day was cancelled.</p>'; return; }
+      NP.renderSlots(slotsBox, res.slots, function (start) {
+        state.start = start;
+        $('[data-bind="summary"]').innerHTML = summary();
+        $("#d-hood").value = state.community.areaName;
+        go("details");
+      }, state.start);
+      if (!res.slots.length) slotsBox.innerHTML = '<p class="muted">Every slot on this group day is taken. <a href="/community/">See other group days</a>.</p>';
+    }, function (err) {
+      slotsBox.innerHTML = '<p class="form-status err" style="display:block">' + esc(err.message) + "</p>";
+    });
+  }
+  if (groupDayId) {
+    communityReady.then(function () {
+      if (!state.community) {
+        go("where");
+        whereErr('Booking a group day needs your community code. <a href="/community/">Enter it here</a>.');
+        return;
+      }
+      root.classList.add("is-group-day");
+      $('[data-go="pros"]').hidden = true;
+      $("[data-group-back]").hidden = false;
+      $("[data-cal]").hidden = true;
+      $(".tz-note").textContent = "Times are San Diego time. No travel buffer on group days: the next home is next door.";
+      go("time");
+      loadGroupDay();
+    });
+  }
 })();

@@ -36,6 +36,7 @@
       <div class="bk-step" data-step="pros" hidden>
         <button type="button" class="bk-back" data-go="where">← Change location</button>
         <h2 class="bk-title">Pros in <span data-bind="area-name"></span></h2>
+        <div class="community-banner" data-community-banner hidden></div>
         <div class="svc-filter" role="radiogroup" aria-label="Service" data-filter>
           <button type="button" data-svc="" aria-pressed="true">All</button>
           <button type="button" data-svc="window-rescreening" aria-pressed="false">Window re-screening</button>
@@ -49,7 +50,9 @@
       <!-- 2. Date + time -->
       <div class="bk-step" data-step="time" hidden>
         <button type="button" class="bk-back" data-go="pros">← All pros</button>
+        <a class="bk-back" href="/community/" data-group-back hidden>← Back to your community</a>
         <div class="pro-head" data-bind="pro-head"></div>
+        <div data-group-info hidden style="margin-bottom:18px"></div>
         <div class="field svc-pick" data-svc-pick hidden>
           <label for="t-svc">Service</label>
           <select id="t-svc"></select>

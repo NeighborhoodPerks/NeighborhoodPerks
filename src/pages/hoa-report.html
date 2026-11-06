@@ -1,0 +1,37 @@
+<!--{"title": "Community report", "description": "Private Neighborhood Perks report for an HOA board.", "path": "/hoa/report/", "noindex": true, "css": ["/assets/app/app.css"], "js": ["/assets/app/api.js", "/assets/app/hoa-report.js"]}-->
+<section class="page-hero" style="padding-bottom:0">
+  <div class="wrap">
+    <span class="eyebrow">Board report · private link</span>
+    <h1 data-bind="title">Community report</h1>
+    <p class="lede" data-bind="lede">How residents are using Neighborhood Perks, what they've saved, and the give-back to your association.</p>
+  </div>
+</section>
+
+<section class="section-tight" id="report">
+  <div class="wrap">
+    <div data-status><p class="muted">Loading…</p></div>
+    <div data-body hidden>
+      <div class="stat-grid" data-bind="totals"></div>
+
+      <div class="panel-card mt-m">
+        <h2>By quarter</h2>
+        <div class="table-scroll" data-bind="quarters"></div>
+      </div>
+      <div class="panel-card">
+        <h2>Group days</h2>
+        <div class="gd-list" data-bind="groupdays"></div>
+      </div>
+      <div class="split">
+        <div class="panel-card">
+          <h2>Services booked</h2>
+          <div class="table-scroll" data-bind="services"></div>
+        </div>
+        <div class="panel-card">
+          <h2>Give-back payments</h2>
+          <div data-bind="payouts"></div>
+        </div>
+      </div>
+      <p class="muted">This report never shows residents' names, addresses or contact details. Give-back is <span data-bind="pct"></span> of what residents paid, from Neighborhood Perks' own fee, paid to the association only. Questions: <a href="mailto:NeighborhoodPerks@gmail.com">NeighborhoodPerks@gmail.com</a> · <a href="tel:+16197363618">(619) 736-3618</a>.</p>
+    </div>
+  </div>
+</section>

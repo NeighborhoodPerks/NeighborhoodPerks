@@ -1,0 +1,34 @@
+<!--{"title": "Your community perks", "description": "HOA residents: enter your community code for resident pricing and group days with vetted local pros.", "path": "/community/", "noindex": true, "css": ["/assets/app/app.css"], "js": ["/assets/app/api.js", "/assets/app/community.js"]}-->
+<section class="page-hero" style="padding-bottom:0">
+  <div class="wrap">
+    <p class="crumb"><a href="/">Home</a> / Community</p>
+    <span class="eyebrow">For HOA residents</span>
+    <h1 data-bind="title">Your community perks</h1>
+    <p class="lede" data-bind="lede">Your HOA partners with Neighborhood Perks. Enter your community's code from the newsletter or portal to unlock resident pricing and group days.</p>
+  </div>
+</section>
+
+<section class="section-tight" id="community">
+  <div class="wrap">
+    <form class="form-card code-form-card" data-code-form novalidate>
+      <label for="c-code"><strong>Community code</strong></label>
+      <div class="code-form mt-s">
+        <input id="c-code" name="code" autocomplete="off" autocapitalize="characters" placeholder="e.g. CARMEL-7Q4K" maxlength="24">
+        <button class="btn btn-primary" type="submit">See my perks</button>
+      </div>
+      <div class="form-status" role="alert"></div>
+    </form>
+
+    <div data-perks hidden>
+      <div class="community-banner"><span>Resident pricing is on for <strong data-bind="name"></strong>.</span><button type="button" class="linklike" data-forget>Not your community?</button></div>
+
+      <h2 class="mt-m">Upcoming group days</h2>
+      <p class="muted">Book a slot on your community's group day. When enough neighbors book, everyone's price drops, automatically.</p>
+      <div class="gd-list" data-groupdays></div>
+
+      <h2 class="mt-m">Pros with resident pricing</h2>
+      <p class="muted">Book any time with these pros and your resident discount is applied.</p>
+      <div class="pro-list" data-pros></div>
+    </div>
+  </div>
+</section>

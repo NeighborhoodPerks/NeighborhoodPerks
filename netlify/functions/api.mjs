@@ -28,6 +28,10 @@ import {
   paymentsEnabled, publicConfig, createSetupIntent, confirmedCard, attachCardToBooking, chargeBooking, payNowSecret, syncPayment,
   refundBooking, payoutStatus, onboardingLink, refreshAccount, stripeDashboardLink, handleWebhook, paymentsSummary,
 } from "../../lib/payments.mjs";
+import {
+  resolveCommunity, publicCommunity, setCustomerCommunity, upsertCommunity, listCommunities, reportLink, addPayout, boardReport,
+  vendorHoa, setVendorHoa, createGroupDay, cancelGroupDay, publicGroupDay,
+} from "../../lib/hoa.mjs";
 
 const routes = [];
 const route = (method, pattern, handler) => {
@@ -89,10 +93,15 @@ route("POST", "/api/bookings", async ({ req, body }) => {
   await rateLimit(`book:${ip}`, 12, 3600);
   const start = isoInstant(body.start, "Time");
   if (start < new Date()) throw bad("That time has already passed.");
+  // A group day fixes the pro, service and neighborhood; otherwise the customer chose them
+  const groupDayId = body.group_day ? uuid(body.group_day) : null;
+  const me = await currentUser(req);
   const input = {
-    vendorId: uuid(body.vendor),
-    areaSlug: str(body.area, "Neighborhood", { max: 80 }),
-    serviceSlug: str(body.service, "Service", { max: 80 }),
+    groupDayId,
+    community: await resolveCommunity({ code: body.community_code, user: me }),
+    vendorId: groupDayId ? null : uuid(body.vendor),
+    areaSlug: groupDayId ? null : str(body.area, "Neighborhood", { max: 80 }),
+    serviceSlug: groupDayId ? null : str(body.service, "Service", { max: 80 }),
     start,
     name: str(body.name, "Name", { max: 120 }),
     phone: phone(body.phone),
@@ -107,11 +116,10 @@ route("POST", "/api/bookings", async ({ req, body }) => {
   let booking = created.booking;
   if (card) { await attachCardToBooking(booking.id, card); booking = await bookingView(booking.id); }
   // Signed in as a homeowner → it's theirs. Otherwise, if a *verified* account owns this email, it's theirs too.
-  const me = await currentUser(req);
   const [owner] = me && me.role === "customer" ? [{ id: me.id }]
     : await db().query(`SELECT id FROM users WHERE role = 'customer' AND email_verified_at IS NOT NULL AND lower(email) = lower($1)`, [input.email]);
   if (owner) await db().query(`UPDATE bookings SET customer_user_id = $2 WHERE id = $1`, [booking.id, owner.id]);
-  return json({ booking: publicBooking(booking), manageToken, inAccount: !!owner }, 201);
+  return json({ booking: publicBooking(booking), manageToken, inAccount: !!owner, groupUnlocked: !!created.groupUnlocked }, 201);
 });
 
 const publicBooking = (b) => ({
@@ -121,6 +129,7 @@ const publicBooking = (b) => ({
   vendor_id: b.vendor_id, vendor_business: b.vendor_business,
   payment_status: b.payment_status, amount_charged_cents: b.amount_charged_cents, amount_refunded_cents: b.amount_refunded_cents,
   vendor_photo_url: b.vendor_photo_version ? `/api/pros/${b.vendor_id}/photo?v=${b.vendor_photo_version}` : null,
+  price_kind: b.price_kind, list_price_cents: b.list_price_cents, community_name: b.community_name, group_day: !!b.group_day_id,
 });
 
 route("GET", "/api/config", async () => json(publicConfig()));
@@ -142,6 +151,20 @@ route("GET", "/api/pros", async ({ url }) => {
 route("GET", "/api/pros/:id/photo", async ({ params }) => {
   const p = await getPhoto(uuid(params.id));
   return new Response(p.data, { headers: { "content-type": p.mime, "cache-control": "public, max-age=31536000, immutable", "x-content-type-options": "nosniff" } });
+});
+
+// --- HOA program: residents --------------------------------------------------------
+route("GET", "/api/community", async ({ req, url }) => {
+  await rateLimit(`community:${clientIp(req)}`, 40, 3600); // codes shouldn't be guessable by brute force
+  return json(await publicCommunity(url.searchParams.get("code")));
+});
+route("GET", "/api/group-days/:id", async ({ req, url, params }) => {
+  await rateLimit(`community:${clientIp(req)}`, 40, 3600);
+  return json(await publicGroupDay(uuid(params.id), url.searchParams.get("code")));
+});
+route("GET", "/api/hoa/report", async ({ req, url }) => {
+  await rateLimit(`hoareport:${clientIp(req)}`, 60, 3600);
+  return json(await boardReport(url.searchParams.get("t")));
 });
 
 route("GET", "/api/booking", async ({ url }) => {
@@ -196,6 +219,11 @@ route("GET", "/api/account", async ({ req }) => {
 route("PUT", "/api/account", async ({ req, body }) => {
   const user = await requireUser(req, ["customer"]);
   return json({ profile: await updateCustomerProfile(user, body) });
+});
+route("PUT", "/api/account/community", async ({ req, body }) => {
+  const user = await requireUser(req, ["customer"]);
+  await rateLimit(`community:${clientIp(req)}`, 40, 3600);
+  return json(await setCustomerCommunity(user, body.code));
 });
 route("POST", "/api/account/bookings/:id/cancel", async ({ req, params, body }) => {
   const user = await requireUser(req, ["customer"]);
@@ -343,6 +371,23 @@ route("DELETE", "/api/my/photo", async ({ req, url }) => {
   const user = await requireUser(req, ["vendor", "admin"]);
   return json({ profile: await removePhoto(scopeVendor(user, url)) });
 });
+// HOA program: the pro's discounts and group days (admins act for a chosen pro)
+route("GET", "/api/my/hoa", async ({ req, url }) => {
+  const user = await requireUser(req, ["vendor", "admin"]);
+  return json(await vendorHoa(scopeVendor(user, url)));
+});
+route("PUT", "/api/my/hoa", async ({ req, url, body }) => {
+  const user = await requireUser(req, ["vendor", "admin"]);
+  return json(await setVendorHoa(scopeVendor(user, url), body));
+});
+route("POST", "/api/my/group-days", async ({ req, url, body }) => {
+  const user = await requireUser(req, ["vendor", "admin"]);
+  return json({ groupDay: await createGroupDay(scopeVendor(user, url), body) }, 201);
+});
+route("POST", "/api/my/group-days/:id/cancel", async ({ req, params }) => {
+  const user = await requireUser(req, ["vendor", "admin"]);
+  return json(await cancelGroupDay(user, uuid(params.id)));
+});
 route("GET", "/api/my/inbox", async ({ req }) => {
   const user = await requireUser(req, ["vendor", "admin"]);
   return json(await inbox(user));
@@ -412,6 +457,22 @@ route("GET", "/api/admin/areas", async ({ req }) => {
 route("POST", "/api/admin/areas", async ({ req, body }) => {
   await requireUser(req, ["admin"]);
   return json({ areas: await upsertArea(body) });
+});
+route("GET", "/api/admin/communities", async ({ req }) => {
+  await requireUser(req, ["admin"]);
+  return json({ communities: await listCommunities() });
+});
+route("POST", "/api/admin/communities", async ({ req, body }) => {
+  await requireUser(req, ["admin"]);
+  return json({ communities: await upsertCommunity(body) });
+});
+route("POST", "/api/admin/communities/:slug/report-link", async ({ req, params }) => {
+  await requireUser(req, ["admin"]);
+  return json(await reportLink(params.slug));
+});
+route("POST", "/api/admin/communities/:slug/payouts", async ({ req, params, body }) => {
+  await requireUser(req, ["admin"]);
+  return json({ communities: await addPayout(params.slug, body) });
 });
 route("GET", "/api/admin/services", async ({ req }) => {
   await requireUser(req, ["admin"]);
