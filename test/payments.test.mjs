@@ -95,7 +95,7 @@ const bookingIdFor = async (email) => (await db().query(`SELECT id FROM bookings
 test("config tells the browser payments are on and the fee", async () => {
   const r = await call("GET", "/api/config");
   assert.equal(r.data.payments, true);
-  assert.equal(r.data.feePercent, 15);
+  assert.equal(r.data.feePercent, 10);
 });
 
 test("providers without payouts set up are hidden and can't be booked", async () => {
@@ -107,7 +107,7 @@ test("providers without payouts set up are hidden and can't be booked", async ()
 
 test("payout onboarding: Stripe link, then ready once Stripe says so", async () => {
   const st = await call("GET", "/api/my/payouts", { cookie: proCookie });
-  assert.deepEqual([st.data.enabled, st.data.connected, st.data.ready, st.data.feePercent], [true, false, false, 15]);
+  assert.deepEqual([st.data.enabled, st.data.connected, st.data.ready, st.data.feePercent], [true, false, false, 10]);
   const link = await call("POST", "/api/my/payouts/onboard", { cookie: proCookie, body: {} });
   assert.match(link.data.url, /connect\.stripe\.test\/setup\/acct_/);
   const [{ stripe_account_id: acct }] = await db().query(`SELECT stripe_account_id FROM vendors WHERE id = $1`, [pro]);
@@ -135,7 +135,7 @@ test("booking needs a card the customer actually saved", async () => {
   assert.match(s.data.clientSecret, /^seti_secret_/);
 });
 
-test("marking done charges once: 15% to us, the rest to the provider", async () => {
+test("marking done charges once: 10% to us, the rest to the provider", async () => {
   const bid = await bookingIdFor("cam@example.com");
   assert.equal((await call("POST", `/api/bookings/${bid}/status`, { cookie: proCookie, body: { status: "completed", amount: 45 } })).data.code, "too_early");
   await pastIt(bid);
@@ -145,13 +145,13 @@ test("marking done charges once: 15% to us, the rest to the provider", async () 
   assert.equal(r.data.charge.status, "paid");
   const pi = [...fake.paymentIntents.values()].at(-1);
   assert.equal(pi.amount, 4500);
-  assert.equal(pi.application_fee_amount, 675, "15% of $45");
+  assert.equal(pi.application_fee_amount, 450, "10% of $45");
   assert.equal(pi.transfer_data.destination, (await db().query(`SELECT stripe_account_id FROM vendors WHERE id=$1`, [pro]))[0].stripe_account_id);
   assert.equal(pi.off_session, true);
   const row = await bookingRow(bid);
-  assert.deepEqual([row.status, row.payment_status, row.amount_charged_cents, row.platform_fee_cents], ["completed", "paid", 4500, 675]);
+  assert.deepEqual([row.status, row.payment_status, row.amount_charged_cents, row.platform_fee_cents], ["completed", "paid", 4500, 450]);
   assert.ok(sent.some((m) => m.to === "cam@example.com" && /Paid: \$45\.00/.test(m.subject)));
-  assert.ok(sent.some((m) => m.to === "paz@example.com" && /\$38\.25/.test(m.subject)), "provider told their 85%");
+  assert.ok(sent.some((m) => m.to === "paz@example.com" && /\$40\.50/.test(m.subject)), "provider told their 90%");
   // Clicking again never charges twice
   const before = fake.paymentIntents.size;
   await call("POST", `/api/bookings/${bid}/status`, { cookie: proCookie, body: { status: "completed", amount: 45 } });

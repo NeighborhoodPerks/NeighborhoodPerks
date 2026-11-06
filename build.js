@@ -3,7 +3,7 @@
 //   node build.js
 // Each page in src/pages/*.html starts with a JSON front-matter comment:
 //   <!--{"title": "...", "description": "...", "path": "/services/"}-->
-// and may use {{icon:name}}, {{phone}}, {{phone_href}}, {{email}} tokens.
+// and may use {{icon:name}}, {{phone}}, {{phone_href}}, {{email}}, {{fee}} and {{fee_keep_100}} tokens.
 
 const fs = require("fs");
 const path = require("path");
@@ -23,6 +23,13 @@ const BIZ = {
 };
 
 const icons = require("./src/icons.js");
+
+// The fee shown to providers comes from the same setting the payments code charges with.
+const { DEFAULT_FEE_PERCENT } = require("./lib/feeDefault.cjs");
+const FEE = (() => {
+  const p = Number(process.env.PLATFORM_FEE_PERCENT || DEFAULT_FEE_PERCENT);
+  return Number.isFinite(p) && p >= 0 && p < 100 ? p : DEFAULT_FEE_PERCENT;
+})();
 
 const NAV = [
   ["/services/", "Services"],
@@ -85,6 +92,7 @@ function footer() {
           <li><a href="/areas/">Neighborhoods we serve</a></li>
           <li><a href="/about/">About</a></li>
           <li><a href="/providers/">Become a provider</a></li>
+          <li><a href="/hoa/">For HOAs &amp; communities</a></li>
           <li><a href="/book/">Book a service</a></li>
           <li><a href="/contact/">Contact</a></li>
         </ul>
@@ -224,7 +232,9 @@ function fill(html) {
     })
     .replace(/\{\{phone\}\}/g, BIZ.phone)
     .replace(/\{\{phone_href\}\}/g, BIZ.phone_href)
-    .replace(/\{\{email\}\}/g, BIZ.email);
+    .replace(/\{\{email\}\}/g, BIZ.email)
+    .replace(/\{\{fee\}\}/g, String(FEE))
+    .replace(/\{\{fee_keep_100\}\}/g, (100 - FEE).toFixed(2).replace(/\.00$/, ""));
 }
 
 // Short content hash so browsers pick up CSS/JS changes after each deploy
