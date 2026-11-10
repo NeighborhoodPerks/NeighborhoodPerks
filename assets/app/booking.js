@@ -201,7 +201,8 @@
       return '<article class="pro-card">' +
         '<div class="pro-top">' + avatar(p, 64) +
         '<div><h3>' + esc(p.business_name || p.name) + "</h3>" + (p.business_name ? '<p class="muted pro-person">' + esc(p.name) + "</p>" : "") + "</div></div>" +
-        (p.bio ? '<p class="pro-bio">' + esc(p.bio) + "</p>" : "") +
+        (p.bio ? '<p class="pro-bio">' + esc(p.bio) + "</p>" +
+          (p.bio.length > 160 || p.bio.split("\n").length > 3 ? '<button type="button" class="linklike pro-more" data-more>Read more</button>' : "") : "") +
         '<ul class="pro-svcs">' + svcs.map(function (s) {
           return "<li><span>" + esc(s.name) + "</span>" + (s.price_cents != null ? "<strong>from " + priceHtml(p, s.price_cents) + "</strong>" : "") + "</li>";
         }).join("") + "</ul>" +
@@ -212,6 +213,12 @@
     }).join("");
   }
   prosBox.addEventListener("click", function (e) {
+    var more = e.target.closest("[data-more]");
+    if (more) {
+      var open = more.previousElementSibling.classList.toggle("is-open");
+      more.textContent = open ? "Show less" : "Read more";
+      return;
+    }
     var b = e.target.closest("[data-pro]");
     if (!b) return;
     choosePro(state.pros.find(function (p) { return p.id === b.getAttribute("data-pro"); }));
@@ -251,6 +258,7 @@
         state.start = start;
         $('[data-bind="summary"]').innerHTML = summary();
         $("#d-hood").value = state.area.name;
+        askHomeSize();
         go("details");
       }, state.start);
     },
@@ -279,6 +287,14 @@
     });
   }
   slotsBox.addEventListener("click", function (e) { if (e.target.closest("[data-go-pros]")) go("pros"); });
+
+  // House cleaning is priced by home size, so the pro needs it to confirm the price
+  var SIZED_SERVICES = ["house-cleaning", "recurring-cleaning", "deep-cleaning"];
+  function askHomeSize() {
+    var on = !!(state.service && SIZED_SERVICES.indexOf(state.service.slug) !== -1);
+    $("[data-home-size]").hidden = !on;
+    $("#d-size").required = on;
+  }
 
   function summary() {
     var g = state.groupDay;
@@ -369,6 +385,7 @@
       : { vendor: state.pro.id, area: state.area.slug, service: state.service.slug, start: state.start, website: f.website.value,
           name: f.name.value, phone: f.phone.value, email: f.email.value, address: f.address.value, neighborhood: state.area.name, notes: f.notes.value };
     if (!state.groupDay && residentHere()) body.community_code = state.community.code;
+    if (f.home_size.required && f.home_size.value) body.notes = ("Home size: " + f.home_size.value + "\n" + body.notes).trim();
     var btn = form.querySelector('button[type="submit"]');
     btn.disabled = true;
     var label = btn.innerHTML;

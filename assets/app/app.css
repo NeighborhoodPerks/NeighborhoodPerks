@@ -200,7 +200,9 @@ body:has(#booker).has-mobile-bar, body:has(#manage).has-mobile-bar { padding-bot
 .pro-top { display: flex; align-items: center; gap: 14px; }
 .pro-top h3 { margin: 0; font-size: 1.25rem; }
 .pro-person { margin: 2px 0 0; font-size: .92rem; }
-.pro-bio { margin: 12px 0 0; color: var(--ink-soft); font-size: .97rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.pro-bio { margin: 12px 0 0; color: var(--ink-soft); font-size: .97rem; white-space: pre-line; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.pro-bio.is-open { display: block; }
+.pro-more { margin-top: 4px; font-size: .92rem; }
 .pro-svcs { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 4px; }
 .pro-svcs li { display: flex; justify-content: space-between; gap: 12px; font-size: .95rem; padding: 6px 10px; border-radius: 8px; background: var(--paper); }
 .pro-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; }

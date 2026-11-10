@@ -335,6 +335,8 @@ ON CONFLICT (slug) DO NOTHING;
 -- pro offers it, so a trade with no pros yet is invisible on the booking page.
 INSERT INTO services (slug, name, sort) VALUES
   ('house-cleaning', 'House cleaning', 10),
+  ('recurring-cleaning', 'Recurring house cleaning', 10),
+  ('deep-cleaning', 'Deep cleaning', 10),
   ('window-cleaning', 'Window cleaning', 11),
   ('carpet-cleaning', 'Carpet & upholstery cleaning', 12),
   ('pressure-washing', 'Pressure washing', 13),

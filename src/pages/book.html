@@ -87,6 +87,15 @@
             <label for="d-hood">Neighborhood</label>
             <input id="d-hood" name="neighborhood" readonly tabindex="-1" class="readonly">
           </div>
+          <div class="field full" data-home-size hidden>
+            <label for="d-size">Home size <span class="hint">(cleaning is priced by size)</span></label>
+            <select id="d-size" name="home_size">
+              <option value="">Choose your home's size</option>
+              <option>Under 1,500 sq ft</option><option>1,500–1,999 sq ft</option><option>2,000–2,499 sq ft</option>
+              <option>2,500–2,999 sq ft</option><option>3,000–3,499 sq ft</option><option>3,500–3,999 sq ft</option>
+              <option>4,000–4,499 sq ft</option><option>4,500–4,999 sq ft</option><option>5,000+ sq ft</option>
+            </select>
+          </div>
           <div class="field full"><label for="d-notes">Anything we should know? <span class="hint">(optional)</span></label><textarea id="d-notes" name="notes" maxlength="2000" placeholder="How many screens? Your pet's name and routine? Gate code? Neighbors booking too?"></textarea></div>
         </div>
         <div class="pay-box" data-pay hidden>
