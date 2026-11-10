@@ -19,6 +19,7 @@ import {
 } from "../../lib/manage.mjs";
 import { icsFeed } from "../../lib/ics.mjs";
 import { rateLimit } from "../../lib/ratelimit.mjs";
+import { issueFormToken } from "../../lib/botcheck.mjs";
 import {
   listAreas, findAreas, upsertArea, listPros, getProfile, updateProfile, setPhoto, removePhoto, getPhoto, inbox, markInboxSeen,
 } from "../../lib/pros.mjs";
@@ -205,6 +206,7 @@ route("GET", "/api/auth/me", async ({ req }) => {
     vendor_status: u.vendor_status, email_verified: !!u.email_verified_at,
   } });
 });
+route("GET", "/api/auth/form-token", async ({ req }) => json(await issueFormToken(clientIp(req))));
 route("POST", "/api/auth/signup", async ({ req, body }) => {
   const r = body.as === "provider" ? await signupProvider(body, clientIp(req)) : await signupCustomer(body, clientIp(req));
   return json({ ok: true, role: r.role }, 201, { "set-cookie": r.cookies });

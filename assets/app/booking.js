@@ -162,6 +162,7 @@
     setFilter(state.filter);
     NP.api("GET", "/api/pros?area=" + encodeURIComponent(state.area.slug)).then(function (res) {
       state.pros = res.pros;
+      renderChips();
       renderPros();
     }, function (err) {
       if (err.offline) { go("where"); return offline(); }
@@ -169,12 +170,27 @@
     });
   }
 
+  // Filter buttons = the services the pros here actually offer (a new trade shows up once a pro offers it)
+  function renderChips() {
+    var seen = {}, list = [];
+    state.pros.forEach(function (p) {
+      p.services.forEach(function (s) { if (!seen[s.slug]) { seen[s.slug] = true; list.push(s); } });
+    });
+    if (state.filter && !seen[state.filter]) list.push({ slug: state.filter, name: state.filter.replace(/-/g, " ") });
+    $("[data-filter]").innerHTML = '<button type="button" data-svc="" aria-pressed="false">All</button>' + list.map(function (s) {
+      return '<button type="button" data-svc="' + esc(s.slug) + '" aria-pressed="false">' + esc(s.name) + "</button>";
+    }).join("");
+    $("[data-filter]").hidden = list.length < 2 && !state.filter;
+    setFilter(state.filter);
+  }
+
   function renderPros() {
     communityBanner();
     var f = state.filter;
     var list = state.pros.filter(function (p) { return !f || p.services.some(function (s) { return s.slug === f; }); });
     if (!list.length) {
-      var what = f ? (document.querySelector('[data-filter] [data-svc="' + f + '"]') || {}).textContent.toLowerCase() : "home services";
+      var chip = document.querySelector('[data-filter] [data-svc="' + f + '"]');
+      var what = f ? (chip ? chip.textContent : f.replace(/-/g, " ")).toLowerCase() : "home services";
       prosBox.innerHTML = '<div class="empty-pros"><p><strong>No pros for ' + esc(what) + " in " + esc(state.area.name) + " yet.</strong></p>" +
         '<p class="muted">We\'re adding pros all the time. <a href="#request" data-show-request>Send us a request</a> and we\'ll find someone for you.</p></div>';
       return;

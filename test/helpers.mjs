@@ -6,6 +6,7 @@ import { setDb, pgliteAdapter } from "../lib/db.mjs";
 
 process.env.NODE_ENV = "test";
 process.env.DISABLE_RATE_LIMIT = "1";
+process.env.REQUIRE_FORM_TOKEN = "0"; // test/botcheck.test.mjs switches it back on
 process.env.INSECURE_COOKIES = "1";
 process.env.SITE_URL = "http://localhost:8888";
 

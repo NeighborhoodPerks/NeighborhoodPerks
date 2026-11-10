@@ -330,3 +330,51 @@ INSERT INTO services (slug, name, sort) VALUES
   ('pet-walking', 'Pet walking', 2),
   ('pet-sitting', 'Pet sitting', 3)
 ON CONFLICT (slug) DO NOTHING;
+
+-- Every home-service trade pros can apply for. Homeowners only ever see a service once an approved
+-- pro offers it, so a trade with no pros yet is invisible on the booking page.
+INSERT INTO services (slug, name, sort) VALUES
+  ('house-cleaning', 'House cleaning', 10),
+  ('window-cleaning', 'Window cleaning', 11),
+  ('carpet-cleaning', 'Carpet & upholstery cleaning', 12),
+  ('pressure-washing', 'Pressure washing', 13),
+  ('gutter-cleaning', 'Gutter cleaning', 14),
+  ('solar-panel-cleaning', 'Solar panel cleaning', 15),
+  ('air-duct-cleaning', 'Air duct & chimney cleaning', 16),
+  ('home-organizing', 'Home organizing', 17),
+  ('landscaping', 'Landscaping & yard care', 20),
+  ('irrigation', 'Irrigation & sprinklers', 21),
+  ('tree-service', 'Tree trimming & removal', 22),
+  ('artificial-turf', 'Artificial turf', 23),
+  ('pool-service', 'Pool & spa service', 24),
+  ('pest-control', 'Pest control', 25),
+  ('holiday-lighting', 'Holiday lighting', 26),
+  ('handyman', 'Handyman', 30),
+  ('furniture-assembly', 'Furniture assembly & TV mounting', 31),
+  ('plumbing', 'Plumbing', 32),
+  ('electrical', 'Electrical', 33),
+  ('hvac', 'Heating & air conditioning', 34),
+  ('appliance-repair', 'Appliance repair', 35),
+  ('garage-doors', 'Garage doors & gates', 36),
+  ('locksmith', 'Locksmith', 37),
+  ('security-smart-home', 'Security cameras & smart home', 38),
+  ('painting', 'Painting', 40),
+  ('roofing', 'Roofing', 41),
+  ('windows-doors', 'Window & door installation', 42),
+  ('flooring', 'Flooring & tile', 43),
+  ('drywall', 'Drywall & stucco', 44),
+  ('concrete-pavers', 'Concrete, pavers & masonry', 45),
+  ('fencing', 'Fencing', 46),
+  ('remodeling', 'Remodeling', 47),
+  ('solar-installation', 'Solar installation', 48),
+  ('mold-water-damage', 'Mold & water damage', 49),
+  ('moving-help', 'Moving help', 50),
+  ('junk-removal', 'Junk removal', 51),
+  ('pet-grooming', 'Pet grooming', 60)
+ON CONFLICT (slug) DO NOTHING;
+
+-- One-time tokens the sign-up page fetches on load; a sign-up needs one that is a few seconds old (lib/botcheck.mjs)
+CREATE TABLE IF NOT EXISTS form_tokens (
+  token_hash  text PRIMARY KEY,
+  created_at  timestamptz NOT NULL DEFAULT now()
+);

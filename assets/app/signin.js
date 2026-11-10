@@ -31,6 +31,25 @@
     var first = $('form[data-form="' + show + '"] input:not([type=hidden])');
     if (first) first.focus({ preventScroll: true });
     if (show === "signup-provider") loadChoices();
+    if (show.indexOf("signup-") === 0 && !formToken) getToken().catch(function () {});
+  }
+
+  // --- bot check: sign-ups carry a one-time token fetched when the form opens, and it must be a few
+  // seconds old (people take longer than that to fill in a form; bots don't) ---
+  var formToken = null, tokenAt = 0;
+  function getToken() {
+    return NP.api("GET", "/api/auth/form-token").then(function (r) { formToken = r.token; tokenAt = Date.now(); return r.token; });
+  }
+  function withToken() {
+    return (formToken ? Promise.resolve() : getToken()).then(function () {
+      var wait = 3500 - (Date.now() - tokenAt);
+      return new Promise(function (done) { setTimeout(done, Math.max(0, wait)); });
+    }).then(function () { return formToken; });
+  }
+  function signupFailed(f, err) {
+    if (err.code === "form_token") formToken = null; // expired: the next try fetches a fresh one
+    status(f, err.message);
+    busy(f, false);
   }
 
   root.addEventListener("click", function (e) {
@@ -77,9 +96,12 @@
     if (missing(f)) return;
     if (f.password.value.length < 10) return status(f, "Use at least 10 characters for your password.");
     busy(f, true, "Creating…");
-    NP.api("POST", "/api/auth/signup", { as: "customer", name: f.name.value, email: f.email.value, phone: f.phone.value, password: f.password.value }).then(function (res) {
+    withToken().then(function (token) {
+      return NP.api("POST", "/api/auth/signup", { as: "customer", name: f.name.value, email: f.email.value, phone: f.phone.value, password: f.password.value,
+        form_token: token, website: f.website.value });
+    }).then(function (res) {
       location.href = destination(res.role) + (destination(res.role).indexOf("?") === -1 ? "?welcome=1" : "");
-    }, function (err) { status(f, err.message); busy(f, false); });
+    }, function (err) { signupFailed(f, err); });
   });
 
   // --- provider sign up ---
@@ -109,10 +131,12 @@
     if (!services.length) return status(f, "Choose at least one service you offer.");
     if (!areas.length) return status(f, "Choose at least one neighborhood you work in.");
     busy(f, true, "Creating…");
-    NP.api("POST", "/api/auth/signup", {
-      as: "provider", name: f.name.value, business_name: f.business_name.value, email: f.email.value, phone: f.phone.value,
-      password: f.password.value, services: services, areas: areas, notes: f.notes.value,
-    }).then(function () { location.href = "/vendor/?welcome=1"; }, function (err) { status(f, err.message); busy(f, false); });
+    withToken().then(function (token) {
+      return NP.api("POST", "/api/auth/signup", {
+        as: "provider", name: f.name.value, business_name: f.business_name.value, email: f.email.value, phone: f.phone.value,
+        password: f.password.value, services: services, areas: areas, notes: f.notes.value, form_token: token, website: f.website.value,
+      });
+    }).then(function () { location.href = "/vendor/?welcome=1"; }, function (err) { signupFailed(f, err); });
   });
 
   // --- forgot password ---
