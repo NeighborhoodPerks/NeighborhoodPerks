@@ -1,31 +1,35 @@
 <!--{"title": "Neighborhoods We Serve in San Diego", "description": "Vetted local pros for Carmel Valley, Torrey Highlands, Pacific Highlands Ranch, Del Mar Mesa, Torrey Hills and Rancho Peñasquitos in San Diego.", "path": "/areas/", "crumb": "Neighborhoods"}-->
-<section class="page-hero">
+<section class="ph">
   <div class="wrap">
     <p class="crumb"><a href="/">Home</a> / Neighborhoods</p>
-    <span class="eyebrow">Where we work</span>
-    <h1>Neighborhoods we serve in San Diego</h1>
-    <p class="lede">Our pros work in these north San Diego neighborhoods. Pick yours to see the pros who work on your street and their open times.</p>
+    <div class="ph-split">
+      <h1>Neighborhoods we serve in San Diego</h1>
+      <p class="lede">Our pros work in these north San Diego neighborhoods. Tap yours to see who works on your street and when they're free.</p>
+    </div>
+    <div class="map mt-l">{{scene:map}}</div>
   </div>
 </section>
 
-<section class="section-tight" style="padding-top:0">
-  <div class="wrap grid grid-3">
-    <a class="card area-card" href="/book/?area=carmel-valley"><span class="icon-badge tint-green">{{icon:pin}}</span><h2>Carmel Valley</h2><p class="muted">Window re-screening, dog walking and pet sitting from pros who work in Carmel Valley.</p><span class="area-go">See pros in Carmel Valley →</span></a>
-    <a class="card area-card" href="/book/?area=torrey-highlands"><span class="icon-badge tint-coral">{{icon:pin}}</span><h2>Torrey Highlands</h2><p class="muted">Our home base. Book trusted local help for your Torrey Highlands home.</p><span class="area-go">See pros in Torrey Highlands →</span></a>
-    <a class="card area-card" href="/book/?area=pacific-highlands-ranch"><span class="icon-badge tint-sun">{{icon:pin}}</span><h2>Pacific Highlands Ranch</h2><p class="muted">Local pros for Pacific Highlands Ranch homes, booked online in a minute.</p><span class="area-go">See pros in Pacific Highlands Ranch →</span></a>
-    <a class="card area-card" href="/book/?area=del-mar-mesa"><span class="icon-badge tint-sky">{{icon:pin}}</span><h2>Del Mar Mesa</h2><p class="muted">Vetted pros who already work in Del Mar Mesa, with their real open times.</p><span class="area-go">See pros in Del Mar Mesa →</span></a>
-    <a class="card area-card" href="/book/?area=torrey-hills"><span class="icon-badge tint-green">{{icon:pin}}</span><h2>Torrey Hills</h2><p class="muted">Book window re-screening and pet care in Torrey Hills without the phone tag.</p><span class="area-go">See pros in Torrey Hills →</span></a>
-    <a class="card area-card" href="/book/?area=rancho-penasquitos"><span class="icon-badge tint-coral">{{icon:pin}}</span><h2>Rancho Peñasquitos</h2><p class="muted">Trusted local help for Rancho Peñasquitos homes, booked online.</p><span class="area-go">See pros in Rancho Peñasquitos →</span></a>
+<section class="section">
+  <div class="wrap">
+    <ul class="rows reveal">
+      <li><a href="/book/?area=carmel-valley"><strong>Carmel Valley</strong><span>Window re-screening, dog walking and pet sitting from pros who work in Carmel Valley.</span><em>See pros &rarr;</em></a></li>
+      <li><a href="/book/?area=torrey-highlands"><strong>Torrey Highlands</strong><span>Our home base. Book trusted local help for your Torrey Highlands home.</span><em>See pros &rarr;</em></a></li>
+      <li><a href="/book/?area=pacific-highlands-ranch"><strong>Pacific Highlands Ranch</strong><span>Local pros for Pacific Highlands Ranch homes, booked online in a minute.</span><em>See pros &rarr;</em></a></li>
+      <li><a href="/book/?area=del-mar-mesa"><strong>Del Mar Mesa</strong><span>Vetted pros who already work in Del Mar Mesa, with their real open times.</span><em>See pros &rarr;</em></a></li>
+      <li><a href="/book/?area=torrey-hills"><strong>Torrey Hills</strong><span>Book window re-screening and pet care in Torrey Hills without the phone tag.</span><em>See pros &rarr;</em></a></li>
+      <li><a href="/book/?area=rancho-penasquitos"><strong>Rancho Peñasquitos</strong><span>Trusted local help for Rancho Peñasquitos homes, booked online.</span><em>See pros &rarr;</em></a></li>
+    </ul>
   </div>
 </section>
 
 <section class="section band-paper">
-  <div class="wrap split">
-    <div>
-      <h2>Services in every neighborhood</h2>
-      <p class="lede">Each pro chooses the neighborhoods they cover, so what's available can vary by street. The booking page always shows exactly who works where you live.</p>
+  <div class="wrap pair">
+    <div class="reveal">
+      <h2>What's available where</h2>
+      <p class="lede">Each pro picks the neighborhoods they cover, so it can vary street to street. The booking page always shows exactly who works where you live.</p>
     </div>
-    <ul class="checks">
+    <ul class="dots reveal" style="font-size:1.1rem">
       <li><a href="/services/window-rescreening/">Window re-screening</a></li>
       <li><a href="/services/dog-walking/">Dog walking</a></li>
       <li><a href="/services/pet-sitting/">Pet sitting</a></li>
@@ -34,10 +38,16 @@
   </div>
 </section>
 
-<section class="section cta-band">
+<section class="section">
   <div class="wrap">
-    <h2>Don't see your neighborhood?</h2>
-    <p class="lede">We're growing. Tell us where you live and what you need, and we'll let you know when we're there.</p>
-    <div class="btn-row"><a class="btn btn-primary" href="/contact/">Tell us where you are</a><a class="btn btn-ghost" href="/providers/">Are you a local pro? Join us</a></div>
+    <div class="postcard reveal">
+      <span class="stamp" aria-hidden="true">{{icon:mark}}</span>
+      <div>
+        <h2>Live just outside the map?</h2>
+        <p class="lede">We're growing. Tell us where you live and what you need, and we'll let you know when we get there.</p>
+        <div class="btn-row"><a class="btn btn-primary" href="/contact/">Tell us where you are</a><a class="text-link" href="/providers/">Local pro? Join us</a></div>
+      </div>
+      <div class="postcard-art">{{icon:art-walk}}</div>
+    </div>
   </div>
 </section>

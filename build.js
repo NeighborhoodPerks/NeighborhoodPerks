@@ -3,7 +3,7 @@
 //   node build.js
 // Each page in src/pages/*.html starts with a JSON front-matter comment:
 //   <!--{"title": "...", "description": "...", "path": "/services/"}-->
-// and may use {{icon:name}}, {{phone}}, {{phone_href}}, {{email}}, {{fee}} and {{fee_keep_100}} tokens.
+// and may use {{icon:name}}, {{phone}}, {{phone_href}}, {{email}}, {{fee}}, {{fee_on_100}}, {{keep_on_100}}, {{fee_keep_100}} and {{scene:name}} tokens.
 
 const fs = require("fs");
 const path = require("path");
@@ -23,6 +23,7 @@ const BIZ = {
 };
 
 const icons = require("./src/icons.js");
+const scenes = require("./src/scenes.js");
 
 // The fee shown to providers comes from the same setting the payments code charges with.
 const { DEFAULT_FEE_PERCENT } = require("./lib/feeDefault.cjs");
@@ -230,10 +231,16 @@ function fill(html) {
       if (!icons[n]) throw new Error("Unknown icon: " + n);
       return icons[n];
     })
+    .replace(/\{\{scene:([a-z0-9-]+)\}\}/g, (_, n) => {
+      if (!scenes[n]) throw new Error("Unknown scene: " + n);
+      return scenes[n];
+    })
     .replace(/\{\{phone\}\}/g, BIZ.phone)
     .replace(/\{\{phone_href\}\}/g, BIZ.phone_href)
     .replace(/\{\{email\}\}/g, BIZ.email)
     .replace(/\{\{fee\}\}/g, String(FEE))
+    .replace(/\{\{fee_on_100\}\}/g, FEE.toFixed(2))
+    .replace(/\{\{keep_on_100\}\}/g, (100 - FEE).toFixed(2))
     .replace(/\{\{fee_keep_100\}\}/g, (100 - FEE).toFixed(2).replace(/\.00$/, ""));
 }
 

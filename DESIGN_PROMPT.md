@@ -1,78 +1,87 @@
-# Design prompt — make Neighborhood Perks look designed, not generated
+# Design prompt: inner pages that match the homepage
 
-> **Owner decision, 2026-11-04:** this prompt was applied in commit fc0b19d, and the owner preferred
-> the original friendlier look with its graphics. The site went back to that design (illustrated
-> hero with floating cards, colorful icon tiles, illustrated service cards, chips), keeping two
-> things: the original house logo with its condensed lettering, and no location pill above the
-> headline. Don't strip the illustrations, icon tiles or color out again because of the list below.
-> Use it only for small polish that keeps the site just as friendly.
+> **History.** 2026-11-04: a "less AI-looking" pass stripped the illustrations and color (fc0b19d).
+> The owner preferred the original friendly look, so it was reverted. 2026-11-12: the owner said
+> the **homepage is right** and the **rest of the site looks vibe-coded**. This prompt is for the
+> inner pages. It adds illustration and character; it never takes them away.
 
-Use this prompt for any visual change to the site.
+Use this prompt for any visual change to a page other than the homepage.
 
 ---
 
-You are redesigning the Neighborhood Perks marketing site (static HTML/CSS in this repo).
-Keep what works: warm cream paper, deep green, coral, sunny yellow, the Fraunces + Figtree
-pairing, the illustrated San Diego street, and the friendly, happy tone. The goal is a site that
-looks like a good local designer made it for a real neighborhood business. Right now it looks
-like it came out of an AI site builder.
+You are redesigning the inner pages of Neighborhood Perks (static HTML/CSS, `node build.js`).
+**Do not change the homepage or any CSS rule it uses.** The homepage is the reference: cream paper,
+deep green, coral, sunny yellow, Fraunces headings, Figtree body, the Bebas Neue house logo, and the
+flat illustrated San Diego street (houses with coral/green/gold roofs, a palm, a sun, the white van).
+Every inner page should feel like it belongs to that street.
 
-## What makes it look AI-generated (remove all of these)
+## Why the inner pages look generated
 
-1. **Badge pills above the headline** ("● Carmel Valley · Torrey Highlands · San Diego"). Delete it.
-2. **Eyebrow labels on every section** ("— HOW IT WORKS", "— AVAILABLE NOW"): tiny uppercase
-   tracked text with a dash. Let the heading do the work. Use one label at most, and only where it
-   carries information.
-3. **Floating glass cards over the hero art** ("Vetted local pros / Every provider screened by
-   us"). They repeat the copy and are a template tell. Remove them.
-4. **An icon in a tinted rounded square on every card** (home, users, tag, shield…). Use icons only
-   where they help someone do something (phone, menu). Never as decoration on a heading.
-5. **Three identical cards in a row, repeated section after section**, with giant faded
-   "01 02 03" numerals. Vary the structure: a definition, a numbered list, rows, a plain
-   paragraph, a form.
-6. **The italic accent word in the headline** ("at a *neighborhood* price"), the most overused
-   AI-hero move. Set the headline in one voice.
-7. **A trust row of icon + three-word claims** under the buttons. Replace it with one plain,
-   useful line (hours, phone).
-8. **Pill buttons with arrow icons and colored glow shadows everywhere.** One primary style:
-   modest radius, no glow, no arrow. Secondary actions are text links.
-9. **Decorative effects with no job:** radial gradient blobs, ring shapes in corners, glassy
-   blurred header, hover-lift cards, fade-up-on-scroll for every block, floating animation.
-10. **Status tags with pulsing dots** ("● BOOKING NOW") on each card. The section heading
-    already says it.
-11. **Sparkle icons on chips** and pill toggles that hide a plain choice. Real checkboxes are
-    friendlier and clearer.
-12. **Green check circles as list bullets** on every list. Use simple bullets.
-13. **Copy tells:** tidy taglines like "Three words, one simple idea.", "Ready when you are",
-    "Good to know", "Enjoy the perk", "We'd love to hear from you."; every list in threes;
-    words like "seamless" and "elevate"; questions answered with a fragment. Write like the
-    owner talking to a neighbor over the fence: specific, plain, a little warm.
+Every inner page is built from the same five parts in the same order:
 
-## What to do instead (keep it friendly)
+1. An orange uppercase **eyebrow label** with a dash ("— ABOUT US", "— WHAT IT COSTS").
+2. A headline, then a **grid of identical white cards**, each with a **tinted icon square** on top.
+3. **Green check-circle bullets** on every list.
+4. The **same green "How it works" band** with three translucent boxes and yellow numbers.
+5. The **same boxed accordion FAQ** and a **centered "Ready…?" CTA** with two pill buttons.
 
-- **Let the illustration carry the friendliness.** Make the street scene a wide panorama under
-  the hero text, edge to edge inside the page width, with more houses, a dog walker and the van.
-  That makes it the brand moment instead of a box beside the copy.
-- **Typography does the hierarchy.** Big, confident Fraunces headings; comfortable Figtree body
-  copy; real size contrast between levels. No all-caps labels.
-- **Borrow from the neighborhood itself:** a dictionary definition of "perk" (the old site asked
-  "What is in a Perk?"), a numbered list, a newsletter-style column, a plain sign-up form.
-  Each section gets the form that fits its content.
-- **Color with restraint:** cream ground, ink text, green as the main brand color, coral only
-  for the main call to action and small accents, yellow only in the illustration and highlights.
-- **Flat and quiet:** thin 1px rules to separate things instead of cards with borders and
-  shadows. Use a card only where something really is a container (a form).
-- **Vary the rhythm:** not every section centered, not every section the same height or
-  structure. Some left-aligned, some full-width bands, some narrow text columns.
-- **Motion only where it helps:** focus rings, menu open/close. Respect reduced motion.
-- **Honesty:** no invented stats, testimonials, guarantees or provider counts. Only claims the
-  business actually makes.
+Only the homepage has illustrations. The inner pages have none, so they feel like a different,
+template-built site.
+
+## The direction: one street, many porches
+
+Each page gets **its own illustrated scene** drawn from the homepage's art, and **a section
+structure that fits what the page is saying**.
+
+### 1. A scene on every page
+
+- Draw scenes from shared parts (house, palm, shrub, sun, cloud, van, walker, dog, mailbox, pin),
+  generated by `src/scenes.js` and placed with `{{scene:name}}`. Same colors, same flat style, same
+  rounded frame as the homepage hero art.
+- Each page gets its own: a whole street (services), a walker and dog (dog walking), a house with a
+  cat in the window (pet sitting), a house getting new screens (window re-screening), the van on a
+  dotted route between houses (pros), a row of homes around a clubhouse and pool (HOA), an
+  illustrated map with a pin for each neighborhood (areas), a porch and mailbox (contact).
+- A scene is a wide band under the page headline, not a box beside it. On a phone it crops from
+  the sides and keeps its height.
+
+### 2. Let the content choose the form
+
+| Content | Form |
+|---|---|
+| What you pay, and when | A **receipt** ("$100 job · our 10% · card fees $0 · you keep $90") |
+| Steps | A **route**: numbered stops joined by a dashed line, like the street |
+| What's included | A plain list with small coral dots |
+| Our standard (about) | A **pull quote** in big Fraunces, the owner's own words |
+| What you can count on | **Definition rows**: term on the left, one line on the right, 1px rules |
+| Neighborhoods | A **map** with clickable pins, then plain rows |
+| Coming-soon services | A **list in columns** under category names, no cards |
+| FAQ | Questions in Fraunces on **rules**, heading beside them, not stacked boxes |
+| Closing call to action | A **postcard**: warm panel, small illustration, one main button |
+
+Use a card only where something really is a container: a form, the receipt.
+
+### 3. Remove on inner pages
+
+- Eyebrow labels. The breadcrumb already says where you are.
+- Tinted icon squares on headings, and sparkle icons on chips.
+- Green check circles on every list.
+- Repeated green "How it works" bands and copy-pasted three-card grids.
+- Copy tells: "We'd love to hear from you", "Good to know", "Enjoy the perk", "Happy dog", "Relax",
+  "Ready for…?". Write like the owner talking to a neighbor over the fence.
+
+### 4. Keep
+
+- The palette, fonts, logo, header, footer, mobile book bar and buttons, all shared with the homepage.
+- The homepage service art (screen, walker, paw house) on its tinted panels. It's part of the brand.
+- Breadcrumbs, structured data, every Netlify form name and field, every booking link.
+- FAQ markup exactly `<details><summary>…</summary><p>…</p></details>`, because build.js reads it
+  for the FAQ structured data.
+- Honest copy: no invented stats, reviews, guarantees or pro counts.
 
 ## Done when
 
-- Nothing above the hero headline but the header.
-- No eyebrow labels, no decorative icon badges, no floating cards, no glow shadows, no
-  scroll animations, no gradient blobs.
-- At least four different section structures on the homepage.
-- It still looks friendly and happy: illustration, warm colors and kind copy all intact.
-- It works at 390px wide with no sideways scroll, and every form still posts to Netlify.
+- Every public inner page has its own scene and at least three different section structures.
+- No eyebrows, icon squares, check circles or repeated green step bands on inner pages.
+- The homepage is pixel-identical to before.
+- Works at 390px with no sideways scroll, and every form still posts to Netlify.

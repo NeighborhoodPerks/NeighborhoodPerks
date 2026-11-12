@@ -1,80 +1,69 @@
 <!--{"title": "Become a provider", "description": "Join Neighborhood Perks as a local home-service pro in Carmel Valley and Torrey Highlands. Get jobs close together, with less driving and no ad spend.", "path": "/providers/"}-->
-<section class="page-hero">
-  <div class="wrap split">
-    <div>
-      <p class="crumb"><a href="/">Home</a> / For pros</p>
-      <span class="eyebrow">For service pros</span>
-      <h1>More jobs per trip. Less time chasing leads.</h1>
-      <p class="lede">Neighborhood Perks groups homeowners on the same streets who need the same service, then sends that work to pros we trust. If you do great work, we'd like to meet you.</p>
-      <div class="btn-row mt-m"><a class="btn btn-primary" href="/signin/?as=pro&amp;mode=signup">Create your pro account {{icon:arrow}}</a><a class="btn btn-ghost" href="/signin/?as=pro">Pro sign in</a></div>
-    </div>
-    <ul class="why-list reveal" style="grid-template-columns:1fr">
-      <li><span class="icon-badge tint-green">{{icon:route}}</span><div><h3>Stacked, nearby jobs</h3><p>Several homes in one neighborhood in one trip means less windshield time and more billable time.</p></div></li>
-      <li><span class="icon-badge tint-coral">{{icon:users}}</span><div><h3>Customers who come to you</h3><p>We bring the demand from our neighborhood network, so you can spend less on ads and lead sites.</p></div></li>
-      <li><span class="icon-badge tint-sun">{{icon:calendar}}</span><div><h3>Booking handled</h3><p>We coordinate with homeowners and hand you a confirmed schedule.</p></div></li>
-    </ul>
-  </div>
-</section>
-
-<section class="section" id="pricing">
+<section class="ph">
   <div class="wrap">
-    <div class="section-head reveal">
-      <span class="eyebrow">What it costs</span>
-      <h2>Free to join. You only pay when you get paid.</h2>
-      <p class="lede">No lead fees, no monthly fee, no paying for clicks that never book. When a customer pays for a finished job, we keep {{fee}}% and the rest goes straight to your bank.</p>
-    </div>
-    <div class="grid grid-3">
-      <article class="card pillar reveal">
-        <div class="icon-badge tint-green">{{icon:tag}}</div>
-        <div class="word">$0 to join</div>
-        <p class="muted">No signup fee and no subscription. Build your profile, set your hours and services, and start taking bookings once you're approved.</p>
-      </article>
-      <article class="card pillar reveal">
-        <div class="icon-badge tint-sun">{{icon:receipt}}</div>
-        <div class="word">{{fee}}% per finished job</div>
-        <p class="muted">Only on jobs you complete and get paid for. On a $100 job you keep ${{fee_keep_100}}. Cancelled or unpaid jobs cost you nothing.</p>
-      </article>
-      <article class="card pillar reveal">
-        <div class="icon-badge tint-coral">{{icon:shield}}</div>
-        <div class="word">Card fees on us</div>
-        <p class="muted">Customers pay by card through Stripe, and we cover the processing fees out of our share. Payouts go to your bank automatically.</p>
-      </article>
-    </div>
-  </div>
-</section>
-
-<section class="section band-paper" id="apply">
-  <div class="wrap split split-form">
-    <div class="reveal">
-      <span class="eyebrow">Apply</span>
-      <h2>Partner with Neighborhood Perks</h2>
-      <p class="lede">Tell us about your business. We'll follow up to learn more and talk through how the partnership works.</p>
-      <div class="card mt-m">
-        <h3>We're especially looking for</h3>
-        <ul class="chips">
-          <li>{{icon:sparkle}} House &amp; window cleaning</li>
-          <li>{{icon:sparkle}} Gutters</li>
-          <li>{{icon:sparkle}} Landscaping</li>
-          <li>{{icon:sparkle}} Pool service</li>
-          <li>{{icon:sparkle}} Pet grooming</li>
-          <li>{{icon:sparkle}} Auto detailing</li>
-          <li>{{icon:sparkle}} Mobile mechanics</li>
-          <li>{{icon:sparkle}} Plumbing &amp; electrical</li>
-          <li>{{icon:sparkle}} Tutoring &amp; babysitting</li>
-        </ul>
+    <p class="crumb"><a href="/">Home</a> / For pros</p>
+    <div class="ph-split">
+      <h1>More jobs per trip. Less time chasing leads.</h1>
+      <div>
+        <p class="lede">We group homeowners on the same streets who need the same service, then send that work to pros we trust. If you do great work, we'd like to meet you.</p>
+        <div class="btn-row"><a class="btn btn-primary" href="/signin/?as=pro&amp;mode=signup">Create your pro account</a><a class="text-link" href="/signin/?as=pro">Pro sign in</a></div>
       </div>
     </div>
-    <div class="stack reveal">
-    <div class="card signup-cta">
-      <h3>Every home service is open</h3>
-      <p class="muted">Cleaning, landscaping, pools, plumbing, electrical, heating and air, handyman, painting, roofing, pest control, pet care and more. Create your pro account now, set up your profile, photo, hours and services, and you're ready to take bookings the moment we approve you.</p>
-      <a class="btn btn-primary" href="/signin/?as=pro&amp;mode=signup">Create your pro account {{icon:arrow}}</a>
+    <div class="scene">{{scene:providers}}</div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <dl class="defs reveal">
+      <div><dt>Jobs close together</dt><dd>Several homes in one neighborhood on one trip. Less time in the truck, more time getting paid.</dd></div>
+      <div><dt>Customers who come to you</dt><dd>We bring the demand from our neighborhood network, so you can spend less on ads and lead sites.</dd></div>
+      <div><dt>Booking handled</dt><dd>Homeowners book your real open times. You get a confirmed schedule, not a pile of messages.</dd></div>
+      <div><dt>Your prices</dt><dd>You set the price for every service you offer, and change it whenever you like.</dd></div>
+    </dl>
+  </div>
+</section>
+
+<section class="section band-paper" id="pricing">
+  <div class="wrap pair">
+    <div class="reveal">
+      <h2>Free to join. You only pay when you get paid.</h2>
+      <p class="lede">No lead fees, no monthly fee, no paying for clicks that never book. When a customer pays for a finished job, we keep {{fee}}% and the rest goes straight to your bank.</p>
+      <ul class="dots dots-green">
+        <li>$0 to sign up, and no subscription</li>
+        <li>Cancelled or unpaid jobs cost you nothing</li>
+        <li>Customers pay by card through Stripe, and payouts go to your bank automatically</li>
+        <li>Tips go to you in full</li>
+      </ul>
     </div>
+    <div class="receipt reveal">
+      <h3>A $100 job</h3>
+      <p class="r-sub">What you keep, start to finish</p>
+      <dl>
+        <div><dt>Customer pays</dt><dd>$100.00</dd></div>
+        <div><dt>Neighborhood Perks ({{fee}}%)</dt><dd>&minus;${{fee_on_100}}</dd></div>
+        <div><dt>Card processing</dt><dd>$0.00, on us</dd></div>
+        <div class="r-total"><dt>You keep</dt><dd>${{keep_on_100}}</dd></div>
+      </dl>
+      <p class="r-note">Plus any tip, in full.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="apply">
+  <div class="wrap split split-form">
+    <div class="reveal">
+      <h2>Every home service is open</h2>
+      <p class="lede">Cleaning, landscaping, pools, plumbing, electrical, heating and air, handyman, painting, roofing, pest control, pet care and more. Set up your profile, photo, hours and services now, and you can take bookings the moment we approve you.</p>
+      <div class="btn-row"><a class="btn btn-primary" href="/signin/?as=pro&amp;mode=signup">Create your pro account</a></div>
+      <p class="mt-l"><strong>Neighbors are asking most for:</strong> house and window cleaning, gutters, landscaping, pool service, pet grooming, auto detailing, mobile mechanics, plumbing and electrical, tutoring and babysitting.</p>
+    </div>
+    <div class="reveal">
     <form class="form-card" name="provider-application" method="POST" action="/thanks/" data-netlify="true" netlify-honeypot="company_website" data-success="Application received. Thank you! We'll be in touch soon to learn more about your business.">
       <input type="hidden" name="form-name" value="provider-application">
       <p class="hp"><label>Leave this empty <input name="company_website" tabindex="-1" autocomplete="off"></label></p>
-      <h3>Don't see your service in the list?</h3>
-      <p class="muted">Tell us about it and we'll add it.</p>
+      <h3>Rather talk to us first?</h3>
+      <p class="muted">Tell us about your business and we'll call you. Doing something we don't list yet? We'll add it.</p>
       <div class="form-grid">
         <div class="field"><label for="p-name">Your name</label><input id="p-name" name="name" autocomplete="name" required></div>
         <div class="field"><label for="p-biz">Business name <span class="hint">(optional)</span></label><input id="p-biz" name="business" autocomplete="organization"></div>
