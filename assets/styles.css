@@ -566,3 +566,30 @@ p { margin: 0 0 1em; }
 .route.route-v p { padding-top: 6px; }
 /* Phones: keep the map's labels readable; it scrolls inside its own frame, the page doesn't */
 @media (max-width: 640px) { .map { overflow-x: auto; } .map svg { width: 720px; max-width: none; } }
+
+/* Homepage below the hero: photo service cards, route on green, plain pro band */
+.photo-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(24px, 3vw, 36px); }
+@media (max-width: 900px) { .photo-cards { grid-template-columns: 1fr; max-width: 560px; } }
+.photo-card { display: flex; flex-direction: column; }
+.photo-card-img { display: block; border-radius: 22px; overflow: hidden; aspect-ratio: 4 / 3; margin-bottom: 20px; background: var(--paper-2); }
+.photo-card-img img { width: 100%; height: 100%; object-fit: cover; transition: transform .4s ease; }
+.photo-card-img:hover img { transform: scale(1.03); }
+@media (prefers-reduced-motion: reduce) { .photo-card-img img { transition: none; } }
+.photo-card h3 { font-size: 1.5rem; margin-bottom: .35em; }
+.photo-card h3 a { color: var(--ink); text-decoration: none; }
+.photo-card h3 a:hover { color: var(--coral-dark); }
+.photo-card p { color: var(--ink-soft); margin-bottom: 20px; }
+.photo-card .btn-row { margin-top: auto; }
+
+.band-green .route::before { border-color: rgba(255, 255, 255, .28); }
+.band-green .route li::before { box-shadow: 0 0 0 6px var(--green); }
+.band-green .route h3 { color: #fff; }
+.band-green .route p { color: rgba(255, 255, 255, .8); }
+
+.pro-band-plain::after { display: none; }
+.pro-band-plain { grid-template-columns: 1fr 1.1fr; }
+.pro-band-art { border-radius: 20px; overflow: hidden; }
+.pro-band-art svg { width: 100%; height: auto; min-height: 150px; display: block; }
+@media (max-width: 860px) { .pro-band-plain { grid-template-columns: 1fr; } }
+.hero + .band-green { margin-top: clamp(56px, 8vw, 104px); }
+.band-green .route li:nth-child(2)::before { background: #fff; color: var(--green); }
