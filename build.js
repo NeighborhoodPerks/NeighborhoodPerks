@@ -81,6 +81,7 @@ function footer() {
       <div>
         <h4>Services</h4>
         <ul>
+          <li><a href="/services/house-cleaning/">House cleaning</a></li>
           <li><a href="/services/window-rescreening/">Window re-screening</a></li>
           <li><a href="/services/dog-walking/">Dog walking</a></li>
           <li><a href="/services/pet-sitting/">Pet sitting</a></li>
@@ -122,6 +123,7 @@ function footer() {
 
 // The service pages, used for the business's offer catalog and each page's Service data
 const SERVICES = [
+  { name: "House cleaning", path: "/services/house-cleaning/" },
   { name: "Window re-screening", path: "/services/window-rescreening/" },
   { name: "Dog walking", path: "/services/dog-walking/" },
   { name: "Pet sitting", path: "/services/pet-sitting/" },

@@ -80,6 +80,10 @@ function mailbox(x) {
   return `<g><rect x="${x + 16}" y="${BASE - 58}" width="8" height="58" fill="${C.trunk}"/><path d="M${x} ${BASE - 56}v-22a18 18 0 0 1 18-18h4a18 18 0 0 1 18 18v22Z" fill="${C.green}"/><rect x="${x + 33}" y="${BASE - 100}" width="5" height="26" fill="${C.coral}"/><rect x="${x + 33}" y="${BASE - 100}" width="16" height="10" fill="${C.coral}"/><rect x="${x - 2}" y="${BASE - 60}" width="44" height="5" rx="2" fill="${C.ink}" opacity=".25"/></g>`;
 }
 
+function bucket(x) {
+  return `<g><path d="M${x - 50} ${BASE}L${x + 6} ${BASE - 118}" stroke="${C.trunk}" stroke-width="5" stroke-linecap="round"/><path d="M${x - 64} ${BASE}c4-14 22-16 30-4l-4 4Z" fill="${C.sky}" stroke="#2a6576" stroke-width="2"/><path d="M${x} ${BASE - 40}h44l-6 40h-32Z" fill="${C.coral}"/><path d="M${x + 4} ${BASE - 40}q18-26 36 0" fill="none" stroke="${C.ink}" stroke-width="2.5"/><ellipse cx="${x + 22}" cy="${BASE - 40}" rx="22" ry="5" fill="${C.sky}"/><g fill="#fff" stroke="#2a6576" stroke-opacity=".4" stroke-width="1.5"><circle cx="${x + 14}" cy="${BASE - 50}" r="6"/><circle cx="${x + 28}" cy="${BASE - 54}" r="8"/><circle cx="${x + 38}" cy="${BASE - 47}" r="5"/></g></g>`;
+}
+
 const SCENES = {
   services: () => frame("sv", "A sunny street of homes with a dog walker and the Neighborhood Perks van", [
     sun(1010, 70), cloud(150, 50), cloud(560, 34, .8), hills(),
@@ -103,6 +107,15 @@ const SCENES = {
     house(380, 130, 96, { roof: C.coral, wall: C.cream, door: C.green }), shrub(536, 16),
     house(860, 160, 116, { roof: C.green }), shrub(1046), house(1080, 120, 92, { roof: C.coral }),
     street(), art("art-walk", 560, 140, 150),
+  ].join("")),
+
+  "house-cleaning": () => frame("hc", "A tidy house with a mop and bucket by the front door, and sparkling windows", [
+    sun(1020, 70), cloud(180, 48), cloud(620, 30, .8), hills(),
+    house(70, 130, 98, { roof: C.coral, wall: C.cream, door: C.green }), shrub(230), palm(300, .85),
+    house(380, 290, 150, { roof: C.green, door: C.coral, trim: C.green }), bucket(690),
+    `<path d="M430 70l3 8 8 3-8 3-3 8-3-8-8-3 8-3Z" fill="${C.sun}"/><path d="M630 84l2 6 6 2-6 2-2 6-2-6-6-2 6-2Z" fill="${C.sun}"/>`,
+    shrub(780, 14), house(830, 150, 108, { roof: C.gold, trim: "#8a5a00" }), shrub(1000), house(1050, 120, 92, { roof: C.coral }),
+    street(), van(140, 292, .58),
   ].join("")),
 
   "pet-sitting": () => frame("ps", "A house with a cat waiting in the window", [
