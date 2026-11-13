@@ -94,3 +94,17 @@ test("What's new: a provider sees customer bookings and cancellations, not their
   const later = (await inbox({ ...user, inbox_seen_at: new Date(Date.now() + 60_000) })).items;
   assert.equal(later.length, 0);
 });
+
+test("booking page lists home neighborhoods always, wider areas only once a pro serves them", async () => {
+  const { listPublicAreas } = await import("../lib/pros.mjs");
+  let slugs = (await listPublicAreas()).map((a) => a.slug);
+  assert.ok(slugs.includes("torrey-highlands"), "home neighborhood with no pros is still offered");
+  assert.ok(!slugs.includes("escondido"), "nobody serves Escondido yet");
+  const cleaner = (await createVendor({ name: "Cleo Clean", email: "cleo@example.com", services: [{ service: "pet-walking", duration_min: 30, buffer_min: 0, price_cents: 3000 }], areas: ["escondido"] })).id;
+  const areas = await listPublicAreas();
+  assert.equal(areas.find((a) => a.slug === "escondido")?.home, false);
+  assert.equal(areas.find((a) => a.slug === "carmel-valley")?.home, true);
+  await db().query(`UPDATE vendors SET active = false WHERE id = $1`, [cleaner]);
+  slugs = (await listPublicAreas()).map((a) => a.slug);
+  assert.ok(!slugs.includes("escondido"), "an inactive pro doesn't make an area appear");
+});

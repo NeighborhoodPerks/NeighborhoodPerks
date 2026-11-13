@@ -21,7 +21,7 @@ import { icsFeed } from "../../lib/ics.mjs";
 import { rateLimit } from "../../lib/ratelimit.mjs";
 import { issueFormToken } from "../../lib/botcheck.mjs";
 import {
-  listAreas, findAreas, upsertArea, listPros, getProfile, updateProfile, setPhoto, removePhoto, getPhoto, inbox, markInboxSeen,
+  listAreas, listPublicAreas, findAreas, upsertArea, listPros, getProfile, updateProfile, setPhoto, removePhoto, getPhoto, inbox, markInboxSeen,
 } from "../../lib/pros.mjs";
 import { db } from "../../lib/db.mjs";
 import { sendEmail, normalizeFrom } from "../../lib/notify.mjs";
@@ -150,7 +150,7 @@ route("POST", "/api/tip", async ({ req, body }) => {
   return json(await tipBooking(await bookingIdByTipToken(body.t), Math.round(Number(body.amount) * 100), { actor: "customer" }));
 });
 route("POST", "/api/tip/done", async ({ body }) => json(await syncTip(await bookingIdByTipToken(body.t))));
-route("GET", "/api/areas", async () => json({ areas: (await listAreas()).map(({ slug, name, zips }) => ({ slug, name, zips })) }));
+route("GET", "/api/areas", async () => json({ areas: await listPublicAreas() }));
 route("GET", "/api/areas/find", async ({ url }) => json({ areas: await findAreas(url.searchParams.get("q")) }));
 route("GET", "/api/pros", async ({ url }) => {
   const area = str(url.searchParams.get("area"), "Neighborhood", { max: 80 });

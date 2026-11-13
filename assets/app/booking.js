@@ -102,16 +102,22 @@
 
   NP.api("GET", "/api/areas").then(function (res) {
     areas = res.areas;
+    // Our home neighborhoods first; wider areas (only listed once a pro serves them) behind "More areas"
+    var more = areas.filter(function (a) { return a.home === false; }).length;
     $("[data-areas]").innerHTML = areas.map(function (a) {
-      return '<button type="button" class="area-chip" data-area="' + esc(a.slug) + '">' + esc(a.name) + "</button>";
-    }).join("") || '<span class="muted">No neighborhoods set up yet.</span>';
+      return '<button type="button" class="area-chip' + (a.home === false ? " more" : "") + '" data-area="' + esc(a.slug) + '">' + esc(a.name) + "</button>";
+    }).join("") + (more ? '<button type="button" class="area-more" data-more-areas>More areas (' + more + ")</button>" : "") ||
+      '<span class="muted">No neighborhoods set up yet.</span>';
+    if (more) $("[data-areas]").classList.add("collapsed");
     var remembered = params.get("area");
     try { remembered = remembered || localStorage.getItem("np-area"); } catch (e) {}
     var match = areas.find(function (a) { return a.slug === remembered; });
     if (match && !params.get("groupday")) communityReady.then(function () { chooseArea(match); });
   }, function (err) { if (err.offline) offline(); else whereErr(esc(err.message)); });
 
+  function showAllAreas() { $("[data-areas]").classList.remove("collapsed"); }
   $("[data-areas]").addEventListener("click", function (e) {
+    if (e.target.closest("[data-more-areas]")) return showAllAreas();
     var b = e.target.closest("[data-area]");
     if (!b) return;
     chooseArea(areas.find(function (a) { return a.slug === b.getAttribute("data-area"); }));
@@ -128,6 +134,7 @@
     }
     if (hits.length === 1) return chooseArea(hits[0]);
     // Several neighborhoods share this ZIP: narrow the chips to those
+    showAllAreas();
     root.querySelectorAll("[data-area]").forEach(function (c) {
       c.hidden = !hits.some(function (h) { return h.slug === c.getAttribute("data-area"); });
     });

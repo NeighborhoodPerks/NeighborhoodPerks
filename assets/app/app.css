@@ -325,3 +325,6 @@ input.readonly { background: var(--paper) !important; color: var(--ink-soft) !im
 .tip-head { display: flex; gap: 14px; align-items: center; }
 .tip-done { font-weight: 700; color: var(--green-2); }
 @media (max-width: 480px) { .tip-choices { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.area-chips.collapsed .area-chip.more { display: none; }
+.area-more { min-height: 42px; padding: 0 16px; border: 0; background: none; font: 700 .95rem var(--font-body); color: var(--green-2); text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
+.area-chips:not(.collapsed) .area-more { display: none; }

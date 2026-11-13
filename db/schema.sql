@@ -325,6 +325,37 @@ INSERT INTO areas (slug, name, zips, sort) VALUES
   ('rancho-penasquitos', 'Rancho Peñasquitos', '{92129}', 6)
 ON CONFLICT (slug) DO NOTHING;
 
+-- Our home neighborhoods are always offered on the booking page. Any other area appears only once a
+-- bookable pro serves it, so nobody picks their town and finds no one.
+ALTER TABLE areas ADD COLUMN IF NOT EXISTS always_listed boolean NOT NULL DEFAULT false;
+UPDATE areas SET always_listed = true
+ WHERE slug IN ('carmel-valley','torrey-highlands','pacific-highlands-ranch','del-mar-mesa','torrey-hills','rancho-penasquitos')
+   AND NOT always_listed;
+
+-- Wider San Diego County, first added for The Maids (their San Diego franchise's service list, maids.com/45/, 2026-11-12)
+INSERT INTO areas (slug, name, zips, sort) VALUES
+  ('del-mar', 'Del Mar', '{92014}', 20),
+  ('solana-beach', 'Solana Beach', '{92075}', 21),
+  ('cardiff-by-the-sea', 'Cardiff-by-the-Sea', '{92007}', 22),
+  ('encinitas', 'Encinitas', '{92024}', 23),
+  ('carlsbad', 'Carlsbad', '{92008,92009,92010,92011}', 24),
+  ('rancho-santa-fe', 'Rancho Santa Fe', '{92067,92091}', 25),
+  ('la-jolla', 'La Jolla', '{92037}', 26),
+  ('torrey-pines', 'Torrey Pines', '{92037}', 27),
+  ('sorrento-valley', 'Sorrento Valley', '{92121}', 28),
+  ('pacific-beach', 'Pacific Beach', '{92109}', 29),
+  ('mira-mesa', 'Mira Mesa', '{92126}', 30),
+  ('miramar', 'Miramar', '{92126,92145}', 31),
+  ('scripps-ranch', 'Scripps Ranch', '{92131}', 32),
+  ('kearny-mesa', 'Kearny Mesa', '{92111,92123}', 33),
+  ('tierrasanta', 'Tierrasanta', '{92124}', 34),
+  ('poway', 'Poway', '{92064}', 35),
+  ('escondido', 'Escondido', '{92025,92026,92027,92029}', 36),
+  ('santee', 'Santee', '{92071}', 37),
+  ('lakeside', 'Lakeside', '{92040}', 38),
+  ('spring-valley', 'Spring Valley', '{91977,91978}', 39)
+ON CONFLICT (slug) DO NOTHING;
+
 INSERT INTO services (slug, name, sort) VALUES
   ('window-rescreening', 'Window re-screening', 1),
   ('pet-walking', 'Pet walking', 2),
