@@ -44,6 +44,14 @@
         });
       }, function (err) { $("[data-pay-now]").textContent = err.message; });
     }
+    var ask = $('[data-box="approve"]');
+    ask.hidden = b.payment_status !== "needs_approval";
+    if (b.payment_status === "needs_approval") {
+      $('[data-bind="approve-text"]').textContent = (b.vendor_business || b.vendor_first_name) + " finished the job and the final price is " + NP.money(b.approval_cents) +
+        (b.price_cents != null ? ", more than the " + NP.money(b.price_cents) + " you booked at." : ".");
+      $('[data-bind="approve-note"]').textContent = b.approval_note ? "What changed: " + b.approval_note : "";
+      $("[data-decline-reason]").hidden = true;
+    }
     $('[data-box="cancel"]').hidden = true;
     $('[data-box="reschedule"]').hidden = true;
   }
@@ -102,6 +110,24 @@
     if (a === "reschedule") openReschedule();
     if (a === "cancel") { $('[data-box="reschedule"]').hidden = true; $('[data-box="cancel"]').hidden = false; }
     if (a === "cancel-no") $('[data-box="cancel"]').hidden = true;
+    if (a === "approve") {
+      act.disabled = true;
+      NP.api("POST", "/api/booking/approve", { t: token, amount: booking.approval_cents / 100 }).then(function (r) {
+        say(r.status === "failed" ? "Your card was declined. Please pay with another card below." : "Thank you! You've paid " + NP.money(booking.approval_cents) + ".", r.status !== "failed");
+        load();
+      }, function (err) { say(err.message); if (err.code === "approval_changed") load(); }).then(function () { act.disabled = false; });
+    }
+    if (a === "decline") {
+      // first click asks for a reason, second sends it
+      var why = $("[data-decline-reason]");
+      if (why.hidden) { why.hidden = false; act.textContent = "Send, don't charge"; $("#d-reason").focus(); return; }
+      act.disabled = true;
+      NP.api("POST", "/api/booking/decline", { t: token, reason: $("#d-reason").value }).then(function () {
+        say("Got it. Nothing was charged, and we've let your pro know.", true);
+        act.textContent = "Don't approve";
+        load();
+      }, function (err) { say(err.message); }).then(function () { act.disabled = false; });
+    }
     if (a === "cancel-yes") {
       act.disabled = true;
       NP.api("POST", "/api/booking/cancel", { t: token, reason: $("#c-reason").value }).then(function (res) {

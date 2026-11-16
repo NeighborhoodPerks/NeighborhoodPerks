@@ -255,7 +255,8 @@
         (b.community_name ? "<div><dt>Community</dt><dd>" + esc(b.community_name) + (b.group_day_id ? " · group day" : "") + "</dd></div>" : "") +
         (b.payment_status && b.payment_status !== "none" ? "<div><dt>Payment</dt><dd>" + esc(NP.PAY_LABEL[b.payment_status]) +
           (b.amount_charged_cents ? ": " + NP.money(b.amount_charged_cents) + (b.platform_fee_cents != null ? ' <span class="muted">(fee ' + NP.money(b.platform_fee_cents) + ", provider " + NP.money(b.amount_charged_cents - b.platform_fee_cents) + ")</span>" : "") : "") +
-          (b.amount_refunded_cents ? " · refunded " + NP.money(b.amount_refunded_cents) : "") + "</dd></div>" : "") +
+          (b.amount_refunded_cents ? " · refunded " + NP.money(b.amount_refunded_cents) : "") +
+          (b.payment_status === "needs_approval" ? ": " + NP.money(b.approval_cents) + ' <span class="muted">(the customer has been emailed to approve it)</span>' : "") + "</dd></div>" : "") +
         (b.tip_cents ? "<div><dt>Tip</dt><dd>" + NP.money(b.tip_cents) + ' <span class="muted">(all to the provider, no fee)</span></dd></div>' : "") +
         (isAdmin() ? "<div><dt>Provider</dt><dd>" + esc(b.vendor_name) + "</dd></div>" : "") +
         (b.cancel_reason ? "<div><dt>Cancel reason</dt><dd>" + esc(b.cancel_reason) + "</dd></div>" : "") +
@@ -264,6 +265,8 @@
         (upcoming ? '<button class="btn btn-dark btn-sm" data-sa="move">Move</button>' : "") +
         (b.status === "confirmed" && started ? '<button class="btn btn-dark btn-sm" data-sa="completed">Mark done</button><button class="btn btn-ghost btn-sm" data-sa="no_show">No-show</button>' : "") +
         (b.status === "confirmed" ? '<button class="btn btn-ghost btn-sm danger" data-sa="cancel">Cancel booking</button>' : "") +
+        (b.status === "completed" && payCfg.payments && (b.payment_status === "card_saved" || b.payment_status === "needs_approval")
+          ? '<button class="btn btn-dark btn-sm" data-sa="charge">' + (b.payment_status === "needs_approval" ? "Change the price" : "Charge") + "</button>" : "") +
         (isAdmin() && (b.payment_status === "paid" || b.payment_status === "partially_refunded") ? '<button class="btn btn-ghost btn-sm" data-sa="refund">Refund</button>' : "") +
         "</div>" +
         '<div data-sa-panel></div>' +
@@ -289,28 +292,39 @@
             }, function (err) { toast(err.message, true); });
           };
         }
-        if (a === "completed" && payCfg.payments && b.payment_status === "card_saved") {
-          var start = b.price_cents != null ? (b.price_cents / 100).toFixed(2) : "";
+        // Up to the booked price is charged now; more waits for the customer's OK (lib/payments.mjs)
+        if ((a === "completed" || a === "charge") && payCfg.payments && (b.payment_status === "card_saved" || b.payment_status === "needs_approval")) {
+          var booked = b.price_cents;
+          var start = b.payment_status === "needs_approval" ? (b.approval_cents / 100).toFixed(2) : booked != null ? (booked / 100).toFixed(2) : "";
           panel.innerHTML = '<div class="confirm-box"><p><strong>Charge for this job</strong></p>' +
             '<div class="field"><label for="ch-amt">Final price ($)</label><input id="ch-amt" inputmode="decimal" value="' + start + '"></div>' +
+            '<div class="field mt-s" data-note hidden><label for="ch-note">What changed <span class="hint">(the customer sees this)</span></label><input id="ch-note" maxlength="500" placeholder="e.g. Replaced the shutoff valve as well"></div>' +
             '<p class="muted mt-s" data-split></p>' +
-            '<div class="btn-row mt-s"><button class="btn btn-primary btn-sm" data-yes>Mark done &amp; charge</button><button class="btn btn-ghost btn-sm" data-no>Not yet</button></div></div>';
+            '<div class="btn-row mt-s"><button class="btn btn-primary btn-sm" data-yes></button><button class="btn btn-ghost btn-sm" data-no>Not yet</button></div></div>';
           var amt = $("#ch-amt", panel);
+          var cents = function () { return Math.round(Number(String(amt.value).replace(/[$,\s]/g, "")) * 100); };
+          var asks = function () { return booked == null || cents() > booked; };
           var split = function () {
-            var v = Number(String(amt.value).replace(/[$,\s]/g, ""));
-            $("[data-split]", panel).textContent = v > 0
-              ? "The customer's card is charged " + NP.money(Math.round(v * 100)) + ". " + (isAdmin() ? "The provider gets " : "You get ") + NP.money(Math.round(v * 100) - feeFor(Math.round(v * 100))) + " after the " + NP.money(feeFor(Math.round(v * 100))) + " fee."
-              : "Enter the final price for the job.";
+            var c = cents();
+            var yes = $("[data-yes]", panel);
+            $("[data-note]", panel).hidden = !(c > 0 && asks());
+            yes.textContent = c > 0 && asks() ? "Mark done & ask the customer" : "Mark done & charge";
+            $("[data-split]", panel).textContent = !(c > 0) ? "Enter the final price for the job."
+              : (asks()
+                ? (booked == null ? "This booking had no set price" : "That's more than the " + NP.money(booked) + " they booked at") + ", so we'll email the customer to approve it first. Nothing is charged until they do. "
+                : "The customer's card is charged " + NP.money(c) + ". ") +
+                (isAdmin() ? "The provider gets " : "You get ") + NP.money(c - feeFor(c)) + " after the " + NP.money(feeFor(c)) + " fee.";
           };
           amt.oninput = split; split();
           $("[data-no]", panel).onclick = function () { panel.innerHTML = ""; };
           $("[data-yes]", panel).onclick = function () {
-            var v = Number(String(amt.value).replace(/[$,\s]/g, ""));
+            var v = cents() / 100;
             if (!(v >= 0.5)) return toast("Enter the final price, at least $0.50.", true);
             this.disabled = true;
-            NP.api("POST", "/api/bookings/" + b.id + "/status", { status: "completed", amount: v }).then(function (r) {
+            NP.api("POST", "/api/bookings/" + b.id + "/status", { status: "completed", amount: v, note: asks() ? $("#ch-note", panel).value : "" }).then(function (r) {
               closeSheet(); cal.refetchEvents();
-              toast(r.charge && r.charge.status === "failed" ? r.charge.message : "Done! The customer was charged " + NP.money(Math.round(v * 100)) + ".", r.charge && r.charge.status === "failed");
+              var st = r.charge && r.charge.status;
+              toast(st === "failed" || st === "needs_approval" ? r.charge.message : "Done! The customer was charged " + NP.money(Math.round(v * 100)) + ".", st === "failed");
             }, function (err) { toast(err.message, true); });
           };
           return;
@@ -823,7 +837,7 @@
       if (!p.enabled) return;
       $('[data-bind="pay-summary"]').innerHTML = '<dl class="facts">' + [
         ["Month", p.month], ["Jobs paid", p.paid_jobs], ["Customers paid", NP.money(p.gross)],
-        ["Neighborhood Perks earned", NP.money(p.fees)], ["Refunded", NP.money(p.refunded)], ["Declined cards waiting", p.failed], ["Tips to providers", p.tips ? p.tips + " · " + NP.money(p.tip_cents) : "None yet"],
+        ["Neighborhood Perks earned", NP.money(p.fees)], ["Refunded", NP.money(p.refunded)], ["Declined cards waiting", p.failed], ["Prices waiting for the customer's OK", p.awaiting_approval], ["Tips to providers", p.tips ? p.tips + " · " + NP.money(p.tip_cents) : "None yet"],
       ].map(function (x) { return "<div><dt>" + esc(x[0]) + "</dt><dd>" + esc(x[1]) + "</dd></div>"; }).join("") + "</dl>" +
         '<p class="muted mt-s" style="font-size:.9rem">Stripe\'s card processing fee comes out of your share. Full details are in your Stripe dashboard.</p>';
     }, function () {});

@@ -210,7 +210,12 @@ ALTER TABLE bookings ADD COLUMN IF NOT EXISTS stripe_payment_intent_id text;
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS payment_status text NOT NULL DEFAULT 'none';
 ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_payment_status_check;
 ALTER TABLE bookings ADD CONSTRAINT bookings_payment_status_check CHECK (payment_status IN
-  ('none', 'card_saved', 'processing', 'paid', 'failed', 'refunded', 'partially_refunded'));
+  ('none', 'card_saved', 'needs_approval', 'processing', 'paid', 'failed', 'refunded', 'partially_refunded'));
+-- A final price above what the customer booked at is never charged on the pro's word alone:
+-- it waits here until the customer approves it (or declines, and the card goes back to card_saved).
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS approval_cents integer;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS approval_note text;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS approval_requested_at timestamptz;
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS amount_charged_cents integer;
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS platform_fee_cents integer;
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS amount_refunded_cents integer NOT NULL DEFAULT 0;
@@ -246,7 +251,7 @@ CREATE TABLE IF NOT EXISTS communities (
   join_code          text NOT NULL,
   homes              integer CHECK (homes IS NULL OR homes BETWEEN 1 AND 100000),
   -- share of each paid resident booking given back to the association's fund (100 = 1%)
-  give_back_bps      integer NOT NULL DEFAULT 100 CHECK (give_back_bps BETWEEN 0 AND 1000),
+  give_back_bps      integer NOT NULL DEFAULT 100 CHECK (give_back_bps BETWEEN 0 AND 150),
   guidelines         text,
   contact_name       text,
   contact_email      text,
@@ -254,6 +259,11 @@ CREATE TABLE IF NOT EXISTS communities (
   active             boolean NOT NULL DEFAULT true,
   created_at         timestamptz NOT NULL DEFAULT now()
 );
+-- Give-back comes out of our fee, which is only ~5% on big jobs (fees.cjs); above 1.5% a big
+-- resident job would cost us money. Clamp anything older, then hold the line.
+UPDATE communities SET give_back_bps = 150 WHERE give_back_bps > 150;
+ALTER TABLE communities DROP CONSTRAINT IF EXISTS communities_give_back_bps_check;
+ALTER TABLE communities ADD CONSTRAINT communities_give_back_bps_check CHECK (give_back_bps BETWEEN 0 AND 150);
 CREATE UNIQUE INDEX IF NOT EXISTS communities_code_key ON communities (upper(join_code));
 CREATE UNIQUE INDEX IF NOT EXISTS communities_report_key ON communities (report_token_hash) WHERE report_token_hash IS NOT NULL;
 

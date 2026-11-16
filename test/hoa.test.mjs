@@ -52,6 +52,10 @@ test("admin sets up a community with a join code", async () => {
   const c = r.data.communities.find((x) => x.slug === "carmel-ridge-hoa");
   assert.match(c.join_code, /^CARMEL-[A-Z2-9]{4}$/);
   assert.equal(c.give_back_bps, 100, "1% give-back by default");
+  // give-back comes out of our fee, so it's capped where big jobs would cost us money
+  const greedy = await call("POST", "/api/admin/communities", { cookie: adminCookie, body: { name: "Carmel Ridge HOA", area: "carmel-valley", give_back_pct: 2 } });
+  assert.equal(greedy.data.code, "invalid_give_back");
+  await assert.rejects(db().query(`UPDATE communities SET give_back_bps = 200 WHERE id = $1`, [c.id]), "the database holds the line too");
   code = c.join_code;
   // Saving again keeps the code; another community can't take it
   const again = await call("POST", "/api/admin/communities", { cookie: adminCookie, body: { name: "Carmel Ridge HOA", area: "carmel-valley", homes: 260 } });

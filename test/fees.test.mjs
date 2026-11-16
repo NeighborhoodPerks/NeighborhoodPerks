@@ -32,6 +32,14 @@ test("our share always covers card processing (2.9% + 30c)", () => {
   }
 });
 
+test("the biggest HOA give-back still leaves us more than card processing", () => {
+  // from $30 up: on a $5 job Stripe's fixed 30c eats nearly any fee, and resident jobs aren't that small
+  for (const c of [3000, 4500, 100_000, 1_500_000, 5_000_000]) {
+    const left = fees.feeFor(c) - Math.round((c * fees.MAX_GIVE_BACK_BPS) / 10000);
+    assert.ok(left > Math.round(c * 0.029) + 30, `give-back loses money at ${c}`);
+  }
+});
+
 test("summary reads the way the providers page says it", () => {
   assert.equal(fees.feeSummary(), "10% of the first $1,000, 5% after that");
 });

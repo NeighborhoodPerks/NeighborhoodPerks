@@ -240,7 +240,7 @@
       }).catch(function (err) { st.className = "form-status err"; st.textContent = err.message; choose(pick); });
     };
   }
-  var PAY_LABEL = { card_saved: "Card on file", processing: "Payment processing", paid: "Paid", failed: "Payment needed", refunded: "Refunded", partially_refunded: "Partly refunded" };
+  var PAY_LABEL = { card_saved: "Card on file", needs_approval: "Final price waiting for approval", processing: "Payment processing", paid: "Paid", failed: "Payment needed", refunded: "Refunded", partially_refunded: "Partly refunded" };
 
   window.NP = { api: api, config: config, stripeJs: stripeJs, stripeAppearance: stripeAppearance, payNow: payNow, tipBox: tipBox, PAY_LABEL: PAY_LABEL, dateKey: dateKey, time: time, dayLong: dayLong, when: when, money: money, esc: esc, todayLocal: todayLocal, DatePicker: DatePicker, renderSlots: renderSlots, TZ: TZ };
 })();

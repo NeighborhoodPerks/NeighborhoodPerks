@@ -25,6 +25,7 @@
         ? '<p class="pay-line pay-' + b.payment_status + '">' + NP.PAY_LABEL[b.payment_status] + (b.amount_charged_cents ? ": " + NP.money(b.amount_charged_cents) : "") +
           (b.tip_cents ? " · tipped " + NP.money(b.tip_cents) : "") +
           (b.payment_status === "failed" ? ' <button type="button" class="btn btn-primary btn-sm" data-pay="' + b.id + '">Pay now</button>' : "") +
+          (b.payment_status === "needs_approval" ? ": " + NP.money(b.approval_cents) + ' <button type="button" class="btn btn-primary btn-sm" data-approve="' + b.id + '">Review</button>' : "") +
           (canTip(b) ? ' <button type="button" class="btn btn-ghost btn-sm" data-tip="' + b.id + '">Add a tip</button>' : "") + "</p>"
         : "") +
       '<p class="muted acct-addr">' + esc(b.address) + "</p>" +
@@ -128,6 +129,8 @@
     var cx = e.target.closest("[data-cancel]");
     if (mv) openMove(bookings.find(function (b) { return b.id === mv.getAttribute("data-move"); }));
     if (cx) openCancel(bookings.find(function (b) { return b.id === cx.getAttribute("data-cancel"); }));
+    var ap = e.target.closest("[data-approve]");
+    if (ap) openApprove(bookings.find(function (b) { return b.id === ap.getAttribute("data-approve"); }));
     var pv = e.target.closest("[data-pay]");
     if (pv) openPay(pv.getAttribute("data-pay"));
     if (e.target.closest('[data-act="resend"]')) {
@@ -145,6 +148,25 @@
         return NP.api("POST", "/api/account/bookings/" + id + "/pay/done", {}).then(function () { closeSheet(); load(); });
       });
     }, function (err) { $("[data-pay-now]", sheet).textContent = err.message; });
+  }
+
+  // A final price above what they booked at is only charged once they approve it
+  function openApprove(b) {
+    var pro = b.vendor_business || b.vendor_name;
+    openSheet("<h2>Approve the final price?</h2><p>" + esc(pro) + " finished " + esc(b.service_name.toLowerCase()) + " and the final price is <strong>" + NP.money(b.approval_cents) + "</strong>" +
+      (b.price_cents != null ? ", more than the " + NP.money(b.price_cents) + " you booked at." : ".") + "</p>" +
+      (b.approval_note ? '<p class="muted">What changed: ' + esc(b.approval_note) + "</p>" : "") +
+      '<p class="muted">Your card isn\'t charged until you approve. If you don\'t agree, nothing is charged and your pro will get in touch.</p>' +
+      '<div class="field"><label for="ap-reason">If you don\'t agree, tell your pro why <span class="hint">(optional)</span></label><input id="ap-reason" maxlength="500"></div>' +
+      '<div class="btn-row mt-s"><button class="btn btn-primary btn-sm" data-yes>Approve and pay</button><button class="btn btn-ghost btn-sm" data-no>Don\'t approve</button></div><div class="form-status" role="alert"></div>');
+    var fail = function (err) { var s = $(".form-status", sheet); s.className = "form-status err"; s.textContent = err.message; if (err.code === "approval_changed") load(); };
+    $("[data-yes]", sheet).onclick = function () {
+      this.disabled = true;
+      NP.api("POST", "/api/account/bookings/" + b.id + "/approve", { amount: b.approval_cents / 100 }).then(function () { closeSheet(); load(); }, fail);
+    };
+    $("[data-no]", sheet).onclick = function () {
+      NP.api("POST", "/api/account/bookings/" + b.id + "/decline", { reason: $("#ap-reason", sheet).value }).then(function () { closeSheet(); load(); }, fail);
+    };
   }
 
   function openCancel(b) {

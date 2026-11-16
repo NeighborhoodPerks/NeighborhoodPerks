@@ -73,7 +73,7 @@ before(async () => {
   setStripe(stripe);
   process.env.STRIPE_WEBHOOK_SECRET = "whsec_test";
   const v = await createVendor({ name: "Paz Pay", email: "paz@example.com", areas: ["carmel-valley"],
-    services: [{ service: "pet-walking", duration_min: 30, buffer_min: 0, price_cents: 4000 }] });
+    services: [{ service: "pet-walking", duration_min: 30, buffer_min: 0, price_cents: 5000 }] });
   pro = v.id;
   await setHours(pro, { rules: ALL_WEEK("08:00", "18:00"), settings: { min_notice_min: 0, max_days_ahead: 60, slot_step_min: 30 } });
   proCookie = (await call("POST", "/api/auth/invite", { body: { t: tokenIn(v.inviteUrl), password: "paz-password-1" } })).cookie;
@@ -218,8 +218,8 @@ test("pros set their own prices, within limits; only admins add services", async
   const kept = await put({ duration_min: 45 });
   assert.equal(kept.data.services.find((x) => x.slug === "pet-walking").price_cents, 4500, "a save without a price keeps the price");
   assert.equal((await call("PUT", "/api/my/services", { cookie: proCookie, body: { service: "pet-sitting", duration_min: 60, price_cents: 5000 } })).status, 403, "pros can't add a new service");
-  const admin = await call("PUT", `/api/my/services?vendor=${pro}`, { cookie: adminCookie, body: { service: "pet-walking", duration_min: 30, buffer_min: 0, price_cents: 4000 } });
-  assert.equal(admin.data.services.find((x) => x.slug === "pet-walking").price_cents, 4000, "admins can override");
+  const admin = await call("PUT", `/api/my/services?vendor=${pro}`, { cookie: adminCookie, body: { service: "pet-walking", duration_min: 30, buffer_min: 0, price_cents: 5000 } });
+  assert.equal(admin.data.services.find((x) => x.slug === "pet-walking").price_cents, 5000, "admins can override");
 });
 
 test("tips: link in the paid email, 100% to the pro, once, kept apart from the job payment", async () => {
@@ -293,4 +293,80 @@ test("webhooks: forged signatures refused, duplicates ignored, provider status s
   assert.equal((await call("GET", "/api/pros?area=carmel-valley")).data.pros.length, 0, "unbookable again until Stripe re-enables");
   const dup = await call("POST", "/api/stripe/webhook", { raw: JSON.stringify(evt), headers: { "stripe-signature": "sig:whsec_test" } });
   assert.equal(dup.data.duplicate, true);
+});
+
+// --- a final price above the booked price waits for the customer ------------------------
+
+// the webhook test above switched the provider off; switch them back on
+const payoutsOn = () => db().query(`UPDATE vendors SET stripe_charges_enabled = true WHERE id = $1`, [pro]);
+const approvalMail = () => sent.find((m) => m.to === "ap@example.com" && /approve the final price/.test(m.subject));
+
+test("more than the booked price is never charged without the customer's OK", async () => {
+  await payoutsOn();
+  sent.length = 0;
+  const made = await book(15, { email: "ap@example.com", setup_intent: cardFor() });
+  assert.equal(made.status, 201, JSON.stringify(made.data));
+  const bid = await bookingIdFor("ap@example.com");
+  await pastIt(bid);
+  const before = fake.paymentIntents.size;
+  const r = await call("POST", `/api/bookings/${bid}/status`, { cookie: proCookie, body: { status: "completed", amount: 120, note: "Two extra dogs" } });
+  assert.equal(r.status, 200, JSON.stringify(r.data));
+  assert.equal(r.data.charge.status, "needs_approval");
+  assert.equal(fake.paymentIntents.size, before, "nothing charged");
+  const row = await bookingRow(bid);
+  assert.deepEqual([row.status, row.payment_status, row.approval_cents, row.approval_note], ["completed", "needs_approval", 12000, "Two extra dogs"]);
+  const mail = approvalMail();
+  assert.ok(mail, "customer asked");
+  assert.match(mail.text, /\$120\.00, more than the \$50\.00 you booked at/);
+  assert.match(mail.text, /What changed: Two extra dogs/);
+  const t = tokenIn(mail.text);
+  const view = await call("GET", `/api/booking?t=${t}`);
+  assert.deepEqual([view.data.booking.payment_status, view.data.booking.approval_cents], ["needs_approval", 12000]);
+  // the pro lowers it while the customer has the page open: the old amount can't be approved
+  const lowered = await call("POST", `/api/bookings/${bid}/status`, { cookie: proCookie, body: { status: "completed", amount: 90 } });
+  assert.equal(lowered.data.charge.status, "needs_approval");
+  assert.equal((await call("POST", "/api/booking/approve", { body: { t, amount: 120 } })).status, 404, "each request emails a fresh link");
+  const t2 = tokenIn(sent.filter((m) => m.to === "ap@example.com").at(-1).text);
+  assert.equal((await call("POST", "/api/booking/approve", { body: { t: t2, amount: 120 } })).data.code, "approval_changed");
+  const ok = await call("POST", "/api/booking/approve", { body: { t: t2, amount: 90 } });
+  assert.equal(ok.data.status, "paid", JSON.stringify(ok.data));
+  const pi = [...fake.paymentIntents.values()].at(-1);
+  assert.deepEqual([pi.amount, pi.application_fee_amount], [9000, 900]);
+  const paid = await bookingRow(bid);
+  assert.deepEqual([paid.payment_status, paid.amount_charged_cents, paid.approval_cents], ["paid", 9000, null]);
+  assert.equal((await call("POST", "/api/booking/approve", { body: { t: t2, amount: 90 } })).data.code, "already_charged");
+});
+
+test("customer declines: nothing charged, pro told, and they can still charge up to the booked price", async () => {
+  sent.length = 0;
+  await book(16, { email: "dn@example.com", setup_intent: cardFor() });
+  const bid = await bookingIdFor("dn@example.com");
+  await pastIt(bid);
+  await call("POST", `/api/bookings/${bid}/status`, { cookie: proCookie, body: { status: "completed", amount: 80 } });
+  const t = tokenIn(sent.find((m) => m.to === "dn@example.com" && /approve the final price/.test(m.subject)).text);
+  const before = fake.paymentIntents.size;
+  const no = await call("POST", "/api/booking/decline", { body: { t, reason: "We agreed $50" } });
+  assert.equal(no.status, 200, JSON.stringify(no.data));
+  assert.equal(no.data.status, "declined");
+  assert.equal(fake.paymentIntents.size, before);
+  assert.deepEqual([(await bookingRow(bid)).payment_status, (await bookingRow(bid)).approval_cents], ["card_saved", null]);
+  const proMail = sent.find((m) => m.to === "paz@example.com" && /didn't approve/.test(m.subject));
+  assert.ok(proMail && /We agreed \$50/.test(proMail.text) && /up to the \$50\.00/.test(proMail.text));
+  assert.ok(sent.some((m) => m.to === "owner@example.com" && /Price not approved/.test(m.subject)), "admin told");
+  assert.equal((await call("POST", "/api/booking/decline", { body: { t } })).data.code, "nothing_to_approve");
+  const charge = await call("POST", `/api/bookings/${bid}/status`, { cookie: proCookie, body: { status: "completed", amount: 50 } });
+  assert.equal(charge.data.charge.status, "paid");
+});
+
+test("signed-in customers approve from their account; a booking with no price always asks", async () => {
+  sent.length = 0;
+  await book(17, { email: "acct-ap@example.com", setup_intent: cardFor() });
+  const bid = await bookingIdFor("acct-ap@example.com");
+  await pastIt(bid);
+  await db().query(`UPDATE bookings SET price_cents = NULL WHERE id = $1`, [bid]);
+  const r = await call("POST", `/api/bookings/${bid}/status`, { cookie: proCookie, body: { status: "completed", amount: 10 } });
+  assert.equal(r.data.charge.status, "needs_approval", "no booked price means nothing is pre-agreed");
+  assert.equal((await call("POST", `/api/account/bookings/${bid}/approve`, { body: { amount: 10 } })).status, 401);
+  const sum = await call("GET", "/api/admin/payments", { cookie: adminCookie });
+  assert.ok(sum.data.awaiting_approval >= 1);
 });

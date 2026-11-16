@@ -26,7 +26,7 @@ import {
 import { db } from "../../lib/db.mjs";
 import { sendEmail, normalizeFrom } from "../../lib/notify.mjs";
 import {
-  paymentsEnabled, publicConfig, createSetupIntent, confirmedCard, attachCardToBooking, chargeBooking, payNowSecret, syncPayment,
+  paymentsEnabled, publicConfig, createSetupIntent, confirmedCard, attachCardToBooking, chargeBooking, approveCharge, declineCharge, payNowSecret, syncPayment,
   refundBooking, payoutStatus, onboardingLink, refreshAccount, stripeDashboardLink, handleWebhook, paymentsSummary,
   tipInfo, tipBooking, syncTip, bookingIdByTipToken,
 } from "../../lib/payments.mjs";
@@ -130,6 +130,7 @@ const publicBooking = (b) => ({
   price_cents: b.price_cents, vendor_first_name: (b.vendor_name || "").split(" ")[0], timezone: b.timezone,
   vendor_id: b.vendor_id, vendor_business: b.vendor_business,
   payment_status: b.payment_status, amount_charged_cents: b.amount_charged_cents, amount_refunded_cents: b.amount_refunded_cents,
+  approval_cents: b.approval_cents, approval_note: b.approval_note,
   vendor_photo_url: b.vendor_photo_version ? `/api/pros/${b.vendor_id}/photo?v=${b.vendor_photo_version}` : null,
   price_kind: b.price_kind, list_price_cents: b.list_price_cents, community_name: b.community_name, group_day: !!b.group_day_id,
 });
@@ -143,6 +144,11 @@ route("POST", "/api/payments/setup", async ({ req, body }) => {
 });
 route("POST", "/api/booking/pay", async ({ body }) => json(await payNowSecret(await bookingIdByToken(body.t))));
 route("POST", "/api/booking/pay/done", async ({ body }) => json(await syncPayment(await bookingIdByToken(body.t))));
+// A final price above the booked price waits for the customer's OK
+const approvedCents = (body) => Math.round(Number(body.amount) * 100);
+const declineReason = (body) => str(body.reason, "Reason", { optional: true, max: 500 });
+route("POST", "/api/booking/approve", async ({ body }) => json(await approveCharge(await bookingIdByToken(body.t), approvedCents(body), { actor: "customer" })));
+route("POST", "/api/booking/decline", async ({ body }) => json(await declineCharge(await bookingIdByToken(body.t), { actor: "customer", reason: declineReason(body) })));
 // Tips: from the one-time link in the "paid" email
 route("GET", "/api/tip", async ({ url }) => json(await tipInfo(await bookingIdByTipToken(url.searchParams.get("t")))));
 route("POST", "/api/tip", async ({ req, body }) => {
@@ -247,6 +253,18 @@ route("POST", "/api/account/bookings/:id/pay", async ({ req, params }) => {
   await assertCustomerBooking(user, id);
   return json(await payNowSecret(id));
 });
+route("POST", "/api/account/bookings/:id/approve", async ({ req, params, body }) => {
+  const user = await requireUser(req, ["customer"]);
+  const id = uuid(params.id);
+  await assertCustomerBooking(user, id);
+  return json(await approveCharge(id, approvedCents(body), { actor: "customer" }));
+});
+route("POST", "/api/account/bookings/:id/decline", async ({ req, params, body }) => {
+  const user = await requireUser(req, ["customer"]);
+  const id = uuid(params.id);
+  await assertCustomerBooking(user, id);
+  return json(await declineCharge(id, { actor: "customer", reason: declineReason(body) }));
+});
 route("POST", "/api/account/bookings/:id/pay/done", async ({ req, params }) => {
   const user = await requireUser(req, ["customer"]);
   const id = uuid(params.id);
@@ -323,9 +341,9 @@ route("POST", "/api/bookings/:id/status", async ({ req, params, body }) => {
   let charge = null;
   if (body.status === "completed" && paymentsEnabled()) {
     const current = await bookingView(id);
-    if (current.payment_status === "card_saved") {
+    if (current.payment_status === "card_saved" || current.payment_status === "needs_approval") {
       const cents = Math.round(Number(body.amount) * 100);
-      charge = await chargeBooking(id, cents, { actor });
+      charge = await chargeBooking(id, cents, { actor, note: str(body.note, "What changed", { optional: true, max: 500 }) });
     }
   }
   return json({ booking: await setBookingStatus(id, body.status, { actor }), charge });
