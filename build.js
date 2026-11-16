@@ -3,7 +3,7 @@
 //   node build.js
 // Each page in src/pages/*.html starts with a JSON front-matter comment:
 //   <!--{"title": "...", "description": "...", "path": "/services/"}-->
-// and may use {{icon:name}}, {{phone}}, {{phone_href}}, {{email}}, {{fee}} (top rate), {{fee_summary}}, {{fee_on:DOLLARS}}, {{keep_on:DOLLARS}}, {{fee_pct_on:DOLLARS}} and {{scene:name}} tokens.
+// and may use {{icon:name}}, {{phone}}, {{phone_href}}, {{email}}, {{fee}} (top rate), {{fee_summary}}, {{keep_on:DOLLARS}} and {{scene:name}} tokens.
 
 const fs = require("fs");
 const path = require("path");
@@ -17,7 +17,7 @@ const BIZ = {
   name: "Neighborhood Perks",
   phone: "(619) 736-3618",
   phone_href: "tel:+16197363618",
-  email: "NeighborhoodPerks@gmail.com",
+  email: "hello@neighborhoodperks.com",
   facebook: "https://www.facebook.com/181299341742974",
   instagram: "https://www.instagram.com/neighborhoodperks/",
 };
@@ -239,9 +239,7 @@ function fill(html) {
     .replace(/\{\{email\}\}/g, BIZ.email)
     .replace(/\{\{fee\}\}/g, String(FEE_TOP))
     .replace(/\{\{fee_summary\}\}/g, fees.feeSummary())
-    .replace(/\{\{fee_on:(\d+)\}\}/g, (_, d) => usd(fees.feeFor(d * 100)))
-    .replace(/\{\{keep_on:(\d+)\}\}/g, (_, d) => usd(d * 100 - fees.feeFor(d * 100)))
-    .replace(/\{\{fee_pct_on:(\d+)\}\}/g, (_, d) => String(+(fees.feeFor(d * 100) / d).toFixed(1)));
+    .replace(/\{\{keep_on:(\d+)\}\}/g, (_, d) => usd(d * 100 - fees.feeFor(d * 100)));
 }
 
 // 123456 -> "1,234.56", 120000 -> "1,200"

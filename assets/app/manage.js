@@ -32,7 +32,7 @@
       (b.payment_status && b.payment_status !== "none"
         ? '<span class="muted">' + NP.PAY_LABEL[b.payment_status] + (b.amount_charged_cents ? ": " + NP.money(b.amount_charged_cents) : "") +
           (b.amount_refunded_cents ? " (" + NP.money(b.amount_refunded_cents) + " refunded)" : "") + "</span>"
-        : (b.price_cents != null ? '<span class="muted">From ' + NP.money(b.price_cents) + "</span>" : "")) +
+        : (b.price_cents != null ? '<span class="muted">' + (b.quoted ? "Quoted price: " : "From ") + NP.money(b.price_cents) + "</span>" : "")) +
       (b.notes ? '<span class="muted">Notes: ' + NP.esc(b.notes) + "</span>" : "");
     $('[data-bind="actions"]').hidden = b.status !== "confirmed" || past;
     var payBox = $('[data-box="pay"]');
@@ -50,6 +50,7 @@
       $('[data-bind="approve-text"]').textContent = (b.vendor_business || b.vendor_first_name) + " finished the job and the final price is " + NP.money(b.approval_cents) +
         (b.price_cents != null ? ", more than the " + NP.money(b.price_cents) + " you booked at." : ".");
       $('[data-bind="approve-note"]').textContent = b.approval_note ? "What changed: " + b.approval_note : "";
+      $('[data-bind="approve-rule"]').textContent = NP.approvalRule(b.price_cents);
       $("[data-decline-reason]").hidden = true;
     }
     $('[data-box="cancel"]').hidden = true;

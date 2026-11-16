@@ -156,7 +156,7 @@
     openSheet("<h2>Approve the final price?</h2><p>" + esc(pro) + " finished " + esc(b.service_name.toLowerCase()) + " and the final price is <strong>" + NP.money(b.approval_cents) + "</strong>" +
       (b.price_cents != null ? ", more than the " + NP.money(b.price_cents) + " you booked at." : ".") + "</p>" +
       (b.approval_note ? '<p class="muted">What changed: ' + esc(b.approval_note) + "</p>" : "") +
-      '<p class="muted">Your card isn\'t charged until you approve. If you don\'t agree, nothing is charged and your pro will get in touch.</p>' +
+      '<p class="muted">' + esc(NP.approvalRule(b.price_cents)) + "</p>" +
       '<div class="field"><label for="ap-reason">If you don\'t agree, tell your pro why <span class="hint">(optional)</span></label><input id="ap-reason" maxlength="500"></div>' +
       '<div class="btn-row mt-s"><button class="btn btn-primary btn-sm" data-yes>Approve and pay</button><button class="btn btn-ghost btn-sm" data-no>Don\'t approve</button></div><div class="form-status" role="alert"></div>');
     var fail = function (err) { var s = $(".form-status", sheet); s.className = "form-status err"; s.textContent = err.message; if (err.code === "approval_changed") load(); };

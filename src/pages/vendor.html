@@ -43,6 +43,7 @@
       <button type="button" role="tab" data-tab="calendar" aria-selected="true">Calendar</button>
       <button type="button" role="tab" data-tab="profile">Profile</button>
       <button type="button" role="tab" data-tab="hours">Hours</button>
+      <button type="button" role="tab" data-tab="quotes">Quotes <span class="tab-count" data-quote-count hidden></span></button>
       <button type="button" role="tab" data-tab="services">Services</button>
       <button type="button" role="tab" data-tab="payouts" data-payments hidden>Payouts</button>
       <button type="button" role="tab" data-tab="sync">Phone calendar</button>
@@ -118,10 +119,18 @@
     </div>
 
     <!-- Services -->
+    <div class="tab-panel" data-panel="quotes" hidden>
+      <div class="panel-card">
+        <h2>Quote requests</h2>
+        <p class="muted">For jobs you need to see before you can price them. Turn quotes on for a service in the Services tab. Homeowners describe the job and add photos, you send a price and how long it takes, and they book a time on your calendar at that price. Requests close after 7 days without a reply, so answer fast. Customers book far more often when they hear back the same day.</p>
+        <div data-bind="quotes"></div>
+      </div>
+    </div>
+
     <div class="tab-panel" data-panel="services" hidden>
       <div class="panel-card">
         <h2>Your services</h2>
-        <p class="muted">Your price, how long each job takes, and how much travel or cleanup time you need before the next booking. Prices are "from" prices: you confirm the final amount when you mark a job done. HOA resident discounts come off these.</p>
+        <p class="muted">Your price, how long each job takes, and how much travel or cleanup time you need before the next booking. Prices are "from" prices: you confirm the final amount when you mark a job done, and anything above the booked price goes to the customer to approve. HOA resident discounts come off these. Tick <strong>Quotes</strong> for work you need to see before pricing.</p>
         <div data-bind="services"></div>
       </div>
     </div>
@@ -130,7 +139,7 @@
     <div class="tab-panel" data-panel="payouts" hidden>
       <div class="panel-card">
         <h2>Payouts</h2>
-        <p class="muted">Homeowners pay through Neighborhood Perks when you mark a job done. Our fee is <strong data-bind="fee-summary">10% of the first $1,000, 5% after that</strong>, and card processing is on us. The rest goes straight to your bank through Stripe.</p>
+        <p class="muted">Homeowners pay through Neighborhood Perks when you mark a job done. Our fee is <strong data-bind="fee-summary">10% of each job, and 5% of anything over $1,000</strong>, and card processing is on us. The rest goes straight to your bank through Stripe.</p>
         <div data-bind="payouts"><p class="muted">Loading…</p></div>
       </div>
     </div>

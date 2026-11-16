@@ -23,7 +23,7 @@
 
   function go(step) {
     root.querySelectorAll(".bk-step").forEach(function (el) { el.hidden = el.getAttribute("data-step") !== step; });
-    var idx = steps.indexOf(step);
+    var idx = steps.indexOf(step === "quote" ? "time" : step === "quote-done" ? "done" : step);
     root.querySelectorAll(".steps-bar li").forEach(function (li, i) {
       li.classList.toggle("is-current", i === idx);
       li.classList.toggle("is-done", i < idx);
@@ -215,7 +215,8 @@
         }).join("") + "</ul>" +
         (p.hoa && residentHere() ? '<p class="mb-0"><span class="price-tag">' + p.hoa.resident_pct + "% resident discount</span></p>" : "") +
         '<div class="pro-foot"><span class="pro-next' + (next ? "" : " is-none") + '">' + (next ? "Next opening: <strong>" + esc(shortWhen(next)) + "</strong>" : "No openings in the next 3 weeks") + "</span>" +
-        '<button type="button" class="btn btn-primary btn-sm" data-pro="' + esc(p.id) + '"' + (next ? "" : " disabled") + ">See times</button></div>" +
+        '<span class="btn-row">' + (quoteSvcs(p, f).length ? '<button type="button" class="btn ' + (next ? "btn-ghost" : "btn-primary") + ' btn-sm" data-quote="' + esc(p.id) + '">Get a quote</button>' : "") +
+        '<button type="button" class="btn btn-primary btn-sm" data-pro="' + esc(p.id) + '"' + (next ? "" : " disabled") + ">See times</button></span></div>" +
         "</article>";
     }).join("");
   }
@@ -226,6 +227,8 @@
       more.textContent = open ? "Show less" : "Read more";
       return;
     }
+    var qb = e.target.closest("[data-quote]");
+    if (qb) return openQuote(state.pros.find(function (p) { return p.id === qb.getAttribute("data-quote"); }));
     var b = e.target.closest("[data-pro]");
     if (!b) return;
     choosePro(state.pros.find(function (p) { return p.id === b.getAttribute("data-pro"); }));
@@ -440,6 +443,85 @@
           slotsBox.insertAdjacentHTML("afterbegin", '<p class="form-status err" style="display:block">Sorry, someone just booked that time. Here\'s what\'s still open that day.</p>');
         });
       }
+    }).then(function () { btn.disabled = false; btn.innerHTML = label; });
+  });
+
+  // --- quote request: the pro sees the job first, then sends a price ------------------------
+  function quoteSvcs(p, filter) {
+    return p.services.filter(function (s) { return s.quotes && (!filter || s.slug === filter); });
+  }
+  var qForm = root.querySelector('form[data-step="quote"]');
+  var qStatus = qForm.querySelector(".form-status");
+  var qPhotos = [];
+  var qToken = null;
+  function formToken() {
+    return NP.api("GET", "/api/auth/form-token").then(function (r) { qToken = r.token; }, function () {});
+  }
+  function openQuote(p) {
+    state.pro = p;
+    var svcs = quoteSvcs(p, state.filter);
+    if (!svcs.length) svcs = quoteSvcs(p);
+    $('[data-bind="quote-head"]').innerHTML = avatar(p, 52) + "<div><strong>" + esc(p.business_name || p.name) + "</strong>" +
+      '<span class="muted">' + esc(p.business_name ? p.name + " · " : "") + esc(state.area.name) + "</span></div>";
+    $('[data-bind="quote-pro"]').textContent = p.first_name;
+    $("#q-svc").innerHTML = svcs.map(function (s) { return '<option value="' + esc(s.slug) + '">' + esc(s.name) + "</option>"; }).join("");
+    $("[data-quote-svc-pick]").hidden = svcs.length < 2;
+    ["name", "phone", "email", "address"].forEach(function (k) { if (!qForm.elements[k].value) qForm.elements[k].value = form.elements[k].value || saved[k] || ""; });
+    qStatus.className = "form-status";
+    formToken();
+    go("quote");
+  }
+  function renderQuotePhotos() {
+    $("[data-quote-photos]").innerHTML = qPhotos.map(function (src, i) {
+      return '<li><img src="' + src + '" alt="Photo ' + (i + 1) + '"><button type="button" class="linklike" data-drop-photo="' + i + '">Remove</button></li>';
+    }).join("");
+  }
+  $("#q-photos").addEventListener("change", function (e) {
+    var files = Array.prototype.slice.call(e.target.files || []);
+    e.target.value = "";
+    var room = 3 - qPhotos.length;
+    if (files.length > room) { qStatus.className = "form-status err"; qStatus.textContent = "You can add up to 3 photos."; files = files.slice(0, room); }
+    Promise.all(files.filter(function (f) { return /^image\//.test(f.type); }).map(function (f) { return NP.resizeImage(f, 1400); })).then(function (urls) {
+      qPhotos = qPhotos.concat(urls).slice(0, 3);
+      renderQuotePhotos();
+    }, function (err) { qStatus.className = "form-status err"; qStatus.textContent = err.message; });
+  });
+  $("[data-quote-photos]").addEventListener("click", function (e) {
+    var d = e.target.closest("[data-drop-photo]");
+    if (!d) return;
+    qPhotos.splice(Number(d.getAttribute("data-drop-photo")), 1);
+    renderQuotePhotos();
+  });
+  qForm.addEventListener("submit", function (e) {
+    e.preventDefault();
+    qStatus.className = "form-status";
+    var bad = Array.prototype.find.call(qForm.querySelectorAll("[required]"), function (el) { return !el.value.trim(); });
+    if (bad) {
+      qStatus.className = "form-status err";
+      qStatus.textContent = "Please fill in " + (qForm.querySelector('label[for="' + bad.id + '"]') || {}).textContent.replace(/\(.*\)/, "").replace("?", "").trim().toLowerCase() + ".";
+      bad.focus();
+      return;
+    }
+    var f = qForm.elements;
+    if (f.details.value.trim().length < 10) { qStatus.className = "form-status err"; qStatus.textContent = "Please say a little more about the job."; f.details.focus(); return; }
+    var btn = qForm.querySelector('button[type="submit"]');
+    var label = btn.innerHTML;
+    btn.disabled = true;
+    btn.textContent = "Sending…";
+    NP.api("POST", "/api/quotes", {
+      vendor: state.pro.id, area: state.area.slug, service: f.service.value, details: f.details.value, photos: qPhotos,
+      name: f.name.value, phone: f.phone.value, email: f.email.value, address: f.address.value, website: f.website.value, form_token: qToken,
+    }).then(function (res) {
+      try { localStorage.setItem("np-contact", JSON.stringify({ name: f.name.value, phone: f.phone.value, email: f.email.value, address: f.address.value })); } catch (e) {}
+      $('[data-bind="quote-done-text"]').textContent = "We sent your request to " + (state.pro.business_name || state.pro.name) + ". " + state.pro.first_name + " will reply with a price, usually within 2 days.";
+      var link = res.token ? "/quote/?t=" + encodeURIComponent(res.token) : "/";
+      $('[data-bind="quote-link"]').href = link;
+      qPhotos = []; renderQuotePhotos(); f.details.value = "";
+      go("quote-done");
+    }, function (err) {
+      qStatus.className = "form-status err";
+      qStatus.textContent = err.message;
+      if (err.code === "form_token") formToken();
     }).then(function () { btn.disabled = false; btn.innerHTML = label; });
   });
 

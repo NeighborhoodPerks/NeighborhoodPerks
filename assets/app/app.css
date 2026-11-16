@@ -328,3 +328,14 @@ input.readonly { background: var(--paper) !important; color: var(--ink-soft) !im
 .area-chips.collapsed .area-chip.more { display: none; }
 .area-more { min-height: 42px; padding: 0 16px; border: 0; background: none; font: 700 .95rem var(--font-body); color: var(--green-2); text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
 .area-chips:not(.collapsed) .area-more { display: none; }
+
+/* Quote requests: photo picks on /book/, the quote on /quote/, the pro's list on /vendor/ */
+.quote-photos { list-style: none; padding: 0; margin: 10px 0 0; display: flex; flex-wrap: wrap; gap: 10px; }
+.quote-photos li { display: grid; gap: 4px; justify-items: start; }
+.quote-photos img { width: 96px; height: 96px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line, #e6dccb); }
+.quote-price { font-size: 2rem; font-weight: 700; margin: 4px 0; }
+.quote-card { border: 1px solid var(--line, #e6dccb); border-radius: 14px; padding: 16px; margin-top: 12px; background: #fff; }
+.quote-card h3 { margin: 0 0 4px; }
+.quote-card .quote-details { white-space: pre-line; margin: 8px 0; }
+.quote-card .btn-row { margin-top: 10px; }
+.tab-count { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; margin-left: 4px; border-radius: 999px; background: var(--coral, #e0603a); color: #fff; font-size: .75rem; font-weight: 700; }

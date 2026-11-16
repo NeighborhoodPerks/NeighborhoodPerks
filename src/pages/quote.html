@@ -1,0 +1,78 @@
+<!--{"title": "Your quote", "description": "See your Neighborhood Perks quote, accept it and pick a time.", "path": "/quote/", "noindex": true, "css": ["/assets/app/app.css"], "js": ["/assets/app/api.js", "/assets/app/quote.js"]}-->
+<section class="page-hero" style="padding-bottom:0">
+  <div class="wrap">
+    <h1 data-bind="heading">Your quote</h1>
+  </div>
+</section>
+
+<section class="section-tight">
+  <div class="wrap split split-form">
+    <div class="booker card" id="quote" aria-live="polite">
+      <div data-view="loading"><p class="muted">Loading your quote…</p></div>
+
+      <div data-view="missing" hidden>
+        <h2 class="bk-title">We couldn't find that quote</h2>
+        <p>The link may be incomplete, or a newer email has a fresh link. Check your latest email from us, or call or text us at <a href="{{phone_href}}">{{phone}}</a>.</p>
+      </div>
+
+      <div data-view="quote" hidden>
+        <span class="status-pill" data-bind="status"></span>
+        <div class="pro-head mt-s" data-bind="pro"></div>
+        <div data-bind="body"></div>
+
+        <div data-box="accept" hidden>
+          <h2 class="bk-title mt-m">Pick a time</h2>
+          <p class="muted" data-bind="length-note"></p>
+          <div class="cal" data-cal>
+            <div class="cal-head">
+              <button type="button" class="cal-nav" data-cal-prev aria-label="Previous month">‹</button>
+              <strong data-cal-label></strong>
+              <button type="button" class="cal-nav" data-cal-next aria-label="Next month">›</button>
+            </div>
+            <div class="cal-grid" data-cal-grid role="grid"></div>
+          </div>
+          <div class="slots" data-slots><p class="muted">Pick a day to see open times.</p></div>
+          <p class="tz-note">Times are San Diego time.</p>
+          <div data-box="confirm" hidden>
+            <div class="bk-summary" data-bind="picked"></div>
+            <div class="pay-box" data-pay hidden>
+              <h3>Card on file</h3>
+              <p class="muted">You're only charged <strong>after the job is done</strong>, for the quoted price. If it comes to more, we ask you to approve it first.</p>
+              <div class="pay-element" data-pay-element></div>
+              <p class="muted pay-secure">Secured by Stripe. We never see or store your card number.</p>
+            </div>
+            <div class="form-foot"><button type="button" class="btn btn-primary" data-act="book">Book at this price {{icon:arrow}}</button></div>
+          </div>
+        </div>
+
+        <div class="confirm-box" data-box="decline" hidden>
+          <p><strong>Pass on this quote?</strong> We'll let your pro know.</p>
+          <div class="field"><label for="dq-reason">Why? <span class="hint">(optional, shared with your pro)</span></label><input id="dq-reason" maxlength="500"></div>
+          <div class="btn-row mt-s">
+            <button type="button" class="btn btn-primary" data-act="decline-yes">Pass on it</button>
+            <button type="button" class="btn btn-ghost" data-act="decline-no">Keep it open</button>
+          </div>
+        </div>
+        <div class="form-status" role="alert"></div>
+      </div>
+    </div>
+
+    <aside class="stack">
+      <div class="card">
+        <h3>How quotes work</h3>
+        <ol class="route route-v">
+          <li><p>Your pro looks at what you sent and replies with a price and how long the job takes.</p></li>
+          <li><p>Accept it and pick a time on their calendar. Your card is saved, not charged.</p></li>
+          <li><p>You're charged the quoted price after the job is done. Anything more needs your OK first.</p></li>
+        </ol>
+      </div>
+      <div class="card">
+        <h3>Need help?</h3>
+        <ul class="contact-lines">
+          <li><span class="icon-badge tint-green">{{icon:phone}}</span><span><small>Call or text</small><a href="{{phone_href}}">{{phone}}</a></span></li>
+          <li><span class="icon-badge tint-coral">{{icon:mail}}</span><span><small>Email</small><a href="mailto:{{email}}">{{email}}</a></span></li>
+        </ul>
+      </div>
+    </aside>
+  </div>
+</section>

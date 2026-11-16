@@ -180,6 +180,70 @@
     variables: { colorPrimary: "#1f4d36", colorText: "#17261d", colorDanger: "#c24c28", fontFamily: "Figtree, system-ui, sans-serif", borderRadius: "10px" },
   };
   /**
+   * A card form that saves the card for later (SetupIntent), for accepting a quote. Mounts into `box`
+   * when payments are on. save({ name, email, phone }) resolves to the SetupIntent id, or null when
+   * payments are off. (The booking page keeps its own copy, in booking.js.)
+   */
+  function cardForm(box) {
+    var st = { on: false, stripe: null, elements: null, id: null };
+    var ready = stripeJs().then(function (stripe) {
+      if (!stripe) return false;
+      st.on = true;
+      st.stripe = stripe;
+      st.elements = stripe.elements({ mode: "setup", currency: "usd", paymentMethodTypes: ["card"], appearance: stripeAppearance });
+      st.elements.create("payment", { fields: { billingDetails: { email: "never" } } }).mount(box);
+      return true;
+    });
+    return {
+      ready: ready,
+      save: function (who) {
+        return ready.then(function (on) {
+          if (!on) return null;
+          if (st.id) return st.id;
+          return st.elements.submit().then(function (r) {
+            if (r.error) throw new Error(r.error.message);
+            return api("POST", "/api/payments/setup", { email: who.email, name: who.name, phone: who.phone });
+          }).then(function (setup) {
+            return st.stripe.confirmSetup({ elements: st.elements, clientSecret: setup.clientSecret, redirect: "if_required",
+              confirmParams: { return_url: location.href, payment_method_data: { billing_details: { email: who.email } } } });
+          }).then(function (r) {
+            if (r.error) throw new Error(r.error.message);
+            st.id = r.setupIntent.id;
+            return st.id;
+          });
+        });
+      },
+    };
+  }
+
+  /** What happens to a price waiting for the customer's OK (same rule as lib/payments.mjs approvalDeadline). */
+  function approvalRule(bookedCents) {
+    return "Your card isn't charged until you approve. If you don't agree, nothing extra is charged and your pro will get in touch. " +
+      (bookedCents == null ? "If you don't answer within 7 days, nothing is charged." : "If you don't answer within 7 days, we charge the " + money(bookedCents) + " you booked at, not the extra.");
+  }
+
+  /** Shrink a photo in the browser before upload (JPEG, longest side `max` px). */
+  function resizeImage(file, max) {
+    return new Promise(function (resolve, reject) {
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function () {
+        var scale = Math.min(1, max / Math.max(img.width, img.height));
+        var w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+        var c = document.createElement("canvas");
+        c.width = w; c.height = h;
+        var ctx = c.getContext("2d");
+        ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        resolve(c.toDataURL("image/jpeg", 0.82));
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error("We couldn't read that image. Try a JPG or PNG.")); };
+      img.src = url;
+    });
+  }
+
+  /**
    * Pay an amount that's due (after a declined card): mounts a card form in `box`, confirms with Stripe,
    * then calls `done()` so the server can check with Stripe directly.
    */
@@ -242,5 +306,5 @@
   }
   var PAY_LABEL = { card_saved: "Card on file", needs_approval: "Final price waiting for approval", processing: "Payment processing", paid: "Paid", failed: "Payment needed", refunded: "Refunded", partially_refunded: "Partly refunded" };
 
-  window.NP = { api: api, config: config, stripeJs: stripeJs, stripeAppearance: stripeAppearance, payNow: payNow, tipBox: tipBox, PAY_LABEL: PAY_LABEL, dateKey: dateKey, time: time, dayLong: dayLong, when: when, money: money, esc: esc, todayLocal: todayLocal, DatePicker: DatePicker, renderSlots: renderSlots, TZ: TZ };
+  window.NP = { api: api, config: config, stripeJs: stripeJs, stripeAppearance: stripeAppearance, payNow: payNow, tipBox: tipBox, PAY_LABEL: PAY_LABEL, cardForm: cardForm, resizeImage: resizeImage, approvalRule: approvalRule, dateKey: dateKey, time: time, dayLong: dayLong, when: when, money: money, esc: esc, todayLocal: todayLocal, DatePicker: DatePicker, renderSlots: renderSlots, TZ: TZ };
 })();

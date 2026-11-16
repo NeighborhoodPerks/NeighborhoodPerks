@@ -41,5 +41,5 @@ test("the biggest HOA give-back still leaves us more than card processing", () =
 });
 
 test("summary reads the way the providers page says it", () => {
-  assert.equal(fees.feeSummary(), "10% of the first $1,000, 5% after that");
+  assert.equal(fees.feeSummary(), "10% of each job, and 5% of anything over $1,000");
 });

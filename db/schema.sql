@@ -421,3 +421,56 @@ CREATE TABLE IF NOT EXISTS form_tokens (
   token_hash  text PRIMARY KEY,
   created_at  timestamptz NOT NULL DEFAULT now()
 );
+
+-- Approvals nobody answers: one reminder after 2 days, then after 7 days we charge the booked price
+-- (never the extra), or, with no booked price, hand it back to the pro (sweep.mjs)
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS approval_reminded_at timestamptz;
+
+-- Quotes: for work nobody can price before seeing it (plumbing, landscaping, roofing…).
+-- The customer describes the job, the pro sends a price and how long it takes, the customer accepts
+-- and books a time on that pro's calendar at the quoted price. A pro turns quotes on per service.
+ALTER TABLE vendor_services ADD COLUMN IF NOT EXISTS quotes boolean NOT NULL DEFAULT false;
+
+CREATE TABLE IF NOT EXISTS quotes (
+  id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  vendor_id           uuid NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
+  service_id          uuid NOT NULL REFERENCES services(id),
+  area_id             uuid NOT NULL REFERENCES areas(id),
+  status              text NOT NULL DEFAULT 'requested'
+                        CHECK (status IN ('requested', 'quoted', 'accepted', 'declined', 'passed', 'expired')),
+  customer_name       text NOT NULL,
+  customer_phone      text NOT NULL,
+  customer_email      text NOT NULL,
+  address             text NOT NULL,
+  details             text NOT NULL,
+  customer_user_id    uuid REFERENCES users(id) ON DELETE SET NULL,
+  token_hash          text NOT NULL,
+  -- the pro's answer
+  price_cents         integer CHECK (price_cents IS NULL OR price_cents >= 50),
+  duration_min        integer CHECK (duration_min IS NULL OR duration_min BETWEEN 15 AND 720),
+  message             text,
+  valid_until         timestamptz,
+  quoted_at           timestamptz,
+  -- what happened next
+  booking_id          uuid REFERENCES bookings(id) ON DELETE SET NULL,
+  responded_at        timestamptz,
+  response_note       text,
+  pro_reminded_at     timestamptz,
+  customer_reminded_at timestamptz,
+  created_at          timestamptz NOT NULL DEFAULT now(),
+  updated_at          timestamptz NOT NULL DEFAULT now(),
+  CHECK (status NOT IN ('quoted', 'accepted') OR (price_cents IS NOT NULL AND duration_min IS NOT NULL AND valid_until IS NOT NULL))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS quotes_token_key ON quotes (token_hash);
+CREATE INDEX IF NOT EXISTS quotes_vendor ON quotes (vendor_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS quotes_open ON quotes (status) WHERE status IN ('requested', 'quoted');
+
+CREATE TABLE IF NOT EXISTS quote_photos (
+  quote_id  uuid NOT NULL REFERENCES quotes(id) ON DELETE CASCADE,
+  n         smallint NOT NULL CHECK (n BETWEEN 1 AND 3),
+  mime      text NOT NULL,
+  data      bytea NOT NULL,
+  PRIMARY KEY (quote_id, n)
+);
+
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS quote_id uuid REFERENCES quotes(id) ON DELETE SET NULL;

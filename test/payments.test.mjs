@@ -8,6 +8,7 @@ import { setStripe } from "../lib/payments.mjs";
 import { sent } from "../lib/notify.mjs";
 import { db } from "../lib/db.mjs";
 import { createInvite } from "../lib/auth.mjs";
+import { sweep } from "../lib/sweep.mjs";
 
 // --- a stand-in for Stripe that behaves like the parts we use -------------------------
 let seq = 0;
@@ -95,7 +96,7 @@ const bookingIdFor = async (email) => (await db().query(`SELECT id FROM bookings
 test("config tells the browser payments are on and the fee", async () => {
   const r = await call("GET", "/api/config");
   assert.equal(r.data.payments, true);
-  assert.equal(r.data.feeSummary, "10% of the first $1,000, 5% after that");
+  assert.equal(r.data.feeSummary, "10% of each job, and 5% of anything over $1,000");
   assert.deepEqual(r.data.feeTiers.map((t) => t.percent), [10, 5]);
 });
 
@@ -369,4 +370,46 @@ test("signed-in customers approve from their account; a booking with no price al
   assert.equal((await call("POST", `/api/account/bookings/${bid}/approve`, { body: { amount: 10 } })).status, 401);
   const sum = await call("GET", "/api/admin/payments", { cookie: adminCookie });
   assert.ok(sum.data.awaiting_approval >= 1);
+});
+
+test("hourly sweep: one reminder, then the booked price is charged (never the extra)", async () => {
+  await payoutsOn();
+  sent.length = 0;
+  await book(10, { email: "quiet@example.com", setup_intent: cardFor() });
+  const bid = await bookingIdFor("quiet@example.com");
+  await pastIt(bid);
+  await call("POST", `/api/bookings/${bid}/status`, { cookie: proCookie, body: { status: "completed", amount: 75 } });
+  assert.match(sent.find((m) => m.to === "quiet@example.com" && /approve the final price/.test(m.subject)).text, /within 7 days, we'll charge the \$50\.00 you booked at/);
+  assert.equal((await sweep()).approvalReminders, 0, "not yet");
+  await db().query(`UPDATE bookings SET approval_requested_at = now() - interval '3 days' WHERE id = $1`, [bid]);
+  assert.equal((await sweep()).approvalReminders, 1);
+  const reminder = sent.filter((m) => m.to === "quiet@example.com" && /Reminder/.test(m.subject)).at(-1);
+  assert.equal((await call("GET", `/api/booking?t=${tokenIn(reminder.text)}`)).data.booking.approval_cents, 7500, "the reminder's link works");
+  assert.equal((await sweep()).approvalReminders, 0, "only once");
+  const before = fake.paymentIntents.size;
+  await db().query(`UPDATE bookings SET approval_requested_at = now() - interval '8 days' WHERE id = $1`, [bid]);
+  assert.equal((await sweep()).approvalsExpired, 1);
+  assert.equal(fake.paymentIntents.size, before + 1);
+  assert.equal([...fake.paymentIntents.values()].at(-1).amount, 5000, "the booked $50, not $75");
+  const row = await bookingRow(bid);
+  assert.deepEqual([row.payment_status, row.amount_charged_cents, row.approval_cents], ["paid", 5000, null]);
+  assert.ok(sent.some((m) => m.to === "quiet@example.com" && /charged the booked price/.test(m.subject)));
+  assert.ok(sent.some((m) => m.to === "paz@example.com" && /didn't answer/.test(m.subject)));
+  assert.equal((await sweep()).approvalsExpired, 0);
+});
+
+test("hourly sweep: with no booked price, an unanswered price is handed back to the pro", async () => {
+  sent.length = 0;
+  await book(12, { email: "noprice@example.com", setup_intent: cardFor() });
+  const bid = await bookingIdFor("noprice@example.com");
+  await pastIt(bid);
+  await db().query(`UPDATE bookings SET price_cents = NULL WHERE id = $1`, [bid]);
+  await call("POST", `/api/bookings/${bid}/status`, { cookie: proCookie, body: { status: "completed", amount: 60 } });
+  const before = fake.paymentIntents.size;
+  await db().query(`UPDATE bookings SET approval_requested_at = now() - interval '8 days' WHERE id = $1`, [bid]);
+  assert.equal((await sweep()).approvalsExpired, 1);
+  assert.equal(fake.paymentIntents.size, before, "nothing charged");
+  assert.equal((await bookingRow(bid)).payment_status, "card_saved");
+  assert.ok(sent.some((m) => m.to === "paz@example.com" && /No answer/.test(m.subject)));
+  assert.ok(sent.some((m) => m.to === "owner@example.com" && /never approved/.test(m.subject)));
 });

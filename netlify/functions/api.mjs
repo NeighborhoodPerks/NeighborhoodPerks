@@ -1,7 +1,7 @@
 // All dynamic endpoints: /api/* and the vendor calendar feed /ics/<token>.ics
 import {
   HttpError, json, readJson, bad, notFound, clientIp,
-  str, email, phone, isoInstant, isoDate, uuid,
+  str, email, phone, isoInstant, isoDate, uuid, int,
 } from "../../lib/http.mjs";
 import {
   availability, createBooking, bookingView, bookingIdByToken, cancelBooking, rescheduleBooking,
@@ -23,6 +23,10 @@ import { issueFormToken } from "../../lib/botcheck.mjs";
 import {
   listAreas, listPublicAreas, findAreas, upsertArea, listPros, getProfile, updateProfile, setPhoto, removePhoto, getPhoto, inbox, markInboxSeen,
 } from "../../lib/pros.mjs";
+import { botReason, spendFormToken } from "../../lib/botcheck.mjs";
+import {
+  requestQuote, customerQuote, quoteIdByToken, quoteView, listQuotes, assertQuoteAccess, quotePhoto, sendQuote, passQuote, acceptQuote, declineQuote,
+} from "../../lib/quotes.mjs";
 import { db } from "../../lib/db.mjs";
 import { sendEmail, normalizeFrom } from "../../lib/notify.mjs";
 import {
@@ -86,7 +90,14 @@ route("GET", "/api/availability", async ({ req, url }) => {
     excludeBookingId = await bookingIdByToken(t);
     vendorId = (await bookingView(excludeBookingId)).vendor_id;
   }
-  return json(await availability({ serviceSlug, vendorId, fromDate, toDate, excludeBookingId }));
+  // An open quote: that pro's calendar, for as long as they said the job takes
+  let durationMin = null;
+  if (url.searchParams.get("quote")) {
+    const q = await quoteView(await quoteIdByToken(url.searchParams.get("quote")));
+    vendorId = q.vendor_id;
+    durationMin = q.duration_min;
+  }
+  return json(await availability({ serviceSlug, vendorId, fromDate, toDate, excludeBookingId, durationMin }));
 });
 
 route("POST", "/api/bookings", async ({ req, body }) => {
@@ -133,6 +144,7 @@ const publicBooking = (b) => ({
   approval_cents: b.approval_cents, approval_note: b.approval_note,
   vendor_photo_url: b.vendor_photo_version ? `/api/pros/${b.vendor_id}/photo?v=${b.vendor_photo_version}` : null,
   price_kind: b.price_kind, list_price_cents: b.list_price_cents, community_name: b.community_name, group_day: !!b.group_day_id,
+  quoted: !!b.quote_id,
 });
 
 route("GET", "/api/config", async () => json(publicConfig()));
@@ -156,6 +168,35 @@ route("POST", "/api/tip", async ({ req, body }) => {
   return json(await tipBooking(await bookingIdByTipToken(body.t), Math.round(Number(body.amount) * 100), { actor: "customer" }));
 });
 route("POST", "/api/tip/done", async ({ body }) => json(await syncTip(await bookingIdByTipToken(body.t))));
+// --- quotes: customers -----------------------------------------------------------------
+route("POST", "/api/quotes", async ({ req, body }) => {
+  const ip = clientIp(req);
+  await rateLimit(`quote:${ip}`, 8, 3600);
+  const input = {
+    vendorId: uuid(body.vendor), areaSlug: str(body.area, "Neighborhood", { max: 80 }), serviceSlug: str(body.service, "Service", { max: 80 }),
+    details: str(body.details, "What you need done", { min: 10, max: 3000 }),
+    name: str(body.name, "Name", { max: 120 }), phone: phone(body.phone), email: email(body.email), address: str(body.address, "Address", { max: 240 }),
+    photos: Array.isArray(body.photos) ? body.photos : [],
+  };
+  // A caught bot is answered like a person, with nothing sent to the pro
+  const reason = await botReason(body);
+  if (reason) { console.warn("quote blocked", JSON.stringify({ reason, ip })); return json({ ok: true }, 201); }
+  await spendFormToken(body.form_token);
+  const me = await currentUser(req);
+  const r = await requestQuote({ ...input, userId: me && me.role === "customer" ? me.id : null });
+  return json({ ok: true, token: r.token }, 201);
+});
+route("GET", "/api/quote", async ({ url }) => json({ quote: await customerQuote(url.searchParams.get("t")) }));
+route("POST", "/api/quote/accept", async ({ req, body }) => {
+  await rateLimit(`quoteaccept:${clientIp(req)}`, 20, 3600);
+  const start = isoInstant(body.start, "Time");
+  if (start < new Date()) throw bad("That time has already passed.");
+  const card = paymentsEnabled() ? await confirmedCard(body.setup_intent) : null;
+  const me = await currentUser(req);
+  return json(await acceptQuote(body.t, { start, card, userId: me && me.role === "customer" ? me.id : null }));
+});
+route("POST", "/api/quote/decline", async ({ body }) => json(await declineQuote(body.t, { reason: str(body.reason, "Reason", { optional: true, max: 500 }) })));
+
 route("GET", "/api/areas", async () => json({ areas: await listPublicAreas() }));
 route("GET", "/api/areas/find", async ({ url }) => json({ areas: await findAreas(url.searchParams.get("q")) }));
 route("GET", "/api/pros", async ({ url }) => {
@@ -401,6 +442,30 @@ route("PUT", "/api/my/services", async ({ req, url, body }) => {
   const user = await requireUser(req, ["vendor", "admin"]);
   return json({ services: await setVendorService(scopeVendor(user, url), body, { admin: user.role === "admin" }) });
 });
+// --- quotes: pros -----------------------------------------------------------------------
+route("GET", "/api/my/quotes", async ({ req, url }) => {
+  const user = await requireUser(req, ["vendor", "admin"]);
+  return json({ quotes: await listQuotes(scopeVendor(user, url, { required: false })) });
+});
+route("POST", "/api/quotes/:id/send", async ({ req, params, body }) => {
+  const user = await requireUser(req, ["vendor", "admin"]);
+  const id = uuid(params.id);
+  await assertQuoteAccess(user, id);
+  return json({ quote: await sendQuote(id, body, { actor: `${user.role}:${user.email}` }) });
+});
+route("POST", "/api/quotes/:id/pass", async ({ req, params, body }) => {
+  const user = await requireUser(req, ["vendor", "admin"]);
+  const id = uuid(params.id);
+  await assertQuoteAccess(user, id);
+  return json(await passQuote(id, body, { actor: `${user.role}:${user.email}` }));
+});
+route("GET", "/api/quotes/:id/photos/:n", async ({ req, params }) => {
+  const user = await requireUser(req, ["vendor", "admin"]);
+  const id = uuid(params.id);
+  await assertQuoteAccess(user, id);
+  const p = await quotePhoto(id, int(params.n, "Photo", { min: 1, max: 3 }));
+  return new Response(p.data, { headers: { "content-type": p.mime, "cache-control": "private, max-age=86400", "x-content-type-options": "nosniff" } });
+});
 route("GET", "/api/my/profile", async ({ req, url }) => {
   const user = await requireUser(req, ["vendor", "admin"]);
   return json({ profile: await getProfile(scopeVendor(user, url)), areas: await listAreas() });
@@ -555,7 +620,8 @@ export async function handle(req) {
     } else if (req.method !== "GET") {
       // Browsers can't send JSON cross-site without a CORS preflight, which we never allow: CSRF protection
       if (!(req.headers.get("content-type") || "").includes("application/json")) throw bad("Send JSON.", "content_type");
-      body = await readJson(req, url.pathname === "/api/my/photo" ? 900_000 : 20_000);
+      // Photos are resized in the browser first: one profile photo, or up to 3 with a quote request
+      body = await readJson(req, url.pathname === "/api/my/photo" ? 900_000 : url.pathname === "/api/quotes" ? 2_700_000 : 20_000);
     }
     const m = url.pathname.match(r.re);
     const params = Object.fromEntries(r.keys.map((k, i) => [k, decodeURIComponent(m[i + 1])]));

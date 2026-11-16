@@ -103,7 +103,8 @@
     loadInbox();
     var qs = new URLSearchParams(location.search);
     var welcome = qs.get("welcome");
-    tab(qs.get("tab") === "payouts" ? "payouts" : me.vendor_status === "pending" && welcome ? "profile" : "calendar");
+    loadQuotes();
+    tab(qs.get("tab") === "payouts" || qs.get("tab") === "quotes" ? qs.get("tab") : me.vendor_status === "pending" && welcome ? "profile" : "calendar");
   }
 
   // --- tabs --------------------------------------------------------------------------
@@ -114,6 +115,7 @@
     if (name === "hours") loadHours();
     if (name === "profile") loadProfile();
     if (name === "services") loadServices();
+    if (name === "quotes") loadQuotes();
     if (name === "sync") loadIcs();
     if (name === "payouts") loadPayouts();
     if (name === "vendors") loadVendors();
@@ -249,7 +251,7 @@
         '<div><dt>Email</dt><dd><a href="mailto:' + esc(b.customer_email) + '">' + esc(b.customer_email) + "</a></dd></div>" +
         '<div><dt>Address</dt><dd><a href="' + maps + '" target="_blank" rel="noopener">' + esc(b.address) + "</a>" + (b.neighborhood ? " · " + esc(b.neighborhood) : "") + "</dd></div>" +
         (b.notes ? "<div><dt>Notes</dt><dd>" + esc(b.notes) + "</dd></div>" : "") +
-        (b.price_cents != null ? "<div><dt>Price</dt><dd>From " + NP.money(b.price_cents) +
+        (b.price_cents != null ? "<div><dt>Price</dt><dd>" + (b.quote_id ? "Quoted " : "From ") + NP.money(b.price_cents) +
           (b.price_kind ? ' <span class="price-tag">' + (b.price_kind === "group" ? "group day" : "resident") + "</span>" +
             (b.list_price_cents > b.price_cents ? ' <span class="muted">(usually ' + NP.money(b.list_price_cents) + ")</span>" : "") : "") + "</dd></div>" : "") +
         (b.community_name ? "<div><dt>Community</dt><dd>" + esc(b.community_name) + (b.group_day_id ? " · group day" : "") + "</dd></div>" : "") +
@@ -545,6 +547,7 @@
       }).join("") + "</select></label>" +
       '<label>Price from $ <input name="price" inputmode="decimal" size="6" value="' + (sv.price_cents != null ? (sv.price_cents / 100) : "") + '"' + (sv.price_cents == null ? ' placeholder="Set it"' : "") + "></label>" +
       '<label class="day-toggle"><input type="checkbox" name="active"' + (sv.active ? " checked" : "") + "> Taking bookings</label>" +
+      '<label class="day-toggle"><input type="checkbox" name="quotes"' + (sv.quotes ? " checked" : "") + "> Quotes</label>" +
       '<button class="btn btn-dark btn-sm" type="submit">Save</button></form>';
   }
   function addServiceForm(box, have) {
@@ -572,10 +575,90 @@
       buffer_min: Number(f.buffer_min.value),
       active: add ? true : f.active.checked,
     };
+    if (!add) body.quotes = f.quotes.checked;
     body.price_cents = priceCents(f.price.value);
     if (Number.isNaN(body.price_cents)) return toast("Price must be a number, like 120 or 89.50.", true);
     if (!isAdmin() && body.price_cents == null) return toast("Set a price so homeowners know what to expect.", true);
     NP.api("PUT", "/api/my/services" + scope(), body).then(function () { toast("Saved."); loadServices(); }, function (err) { toast(err.message, true); });
+  });
+
+  // --- quotes ------------------------------------------------------------------------------
+  // Admins see everyone's unless they've picked a provider at the top
+  var quoteScope = function () { return isAdmin() && vendorFilter ? "?vendor=" + vendorFilter : ""; };
+  var QUOTE_LABEL = { requested: "Needs your price", quoted: "Price sent", accepted: "Booked", declined: "Customer passed", passed: "You passed", expired: "Closed" };
+  var quotes = [];
+  function loadQuotes() {
+    NP.api("GET", "/api/my/quotes" + quoteScope()).then(function (res) {
+      quotes = res.quotes;
+      var waiting = quotes.filter(function (q) { return q.status === "requested"; }).length;
+      var badge = $("[data-quote-count]");
+      badge.hidden = !waiting;
+      badge.textContent = waiting;
+      var box = $('[data-bind="quotes"]');
+      box.innerHTML = quotes.length ? quotes.map(quoteCard).join("")
+        : '<p class="muted">No quote requests yet. ' + (isAdmin() ? "" : "Tick <strong>Quotes</strong> on a service in the Services tab to start taking them.") + "</p>";
+    }, function () {});
+  }
+  function quoteCard(q) {
+    var open = q.status === "requested" || q.status === "quoted";
+    var photos = "";
+    for (var i = 1; i <= q.photos; i++) photos += '<li><a href="/api/quotes/' + q.id + "/photos/" + i + '" target="_blank" rel="noopener"><img src="/api/quotes/' + q.id + "/photos/" + i + '" alt="Photo ' + i + '" loading="lazy"></a></li>';
+    return '<article class="quote-card" data-quote-id="' + esc(q.id) + '">' +
+      '<span class="status-pill is-' + (q.status === "requested" ? "confirmed" : q.status === "accepted" ? "completed" : q.status === "quoted" ? "no_show" : "cancelled") + '">' + QUOTE_LABEL[q.status] + "</span>" +
+      "<h3 class=\"mt-s\">" + esc(q.service_name) + " · " + esc(q.customer_name) + "</h3>" +
+      '<p class="muted mb-0">' + esc(q.area_name) + " · asked " + esc(NP.when(q.created_at)) + (isAdmin() ? " · " + esc(q.vendor_name) : "") + "</p>" +
+      '<p class="quote-details">' + esc(q.details) + "</p>" +
+      (photos ? '<ul class="quote-photos">' + photos + "</ul>" : "") +
+      '<p class="mb-0"><a href="tel:' + esc(String(q.customer_phone).replace(/[^\d+]/g, "")) + '">' + esc(q.customer_phone) + '</a> · <a href="mailto:' + esc(q.customer_email) + '">' + esc(q.customer_email) + "</a> · " + esc(q.address) + "</p>" +
+      (q.price_cents != null ? '<p class="mt-s mb-0"><strong>' + NP.money(q.price_cents) + "</strong>, " + (q.duration_min / 60) + " hr" + (q.duration_min > 60 ? "s" : "") +
+        (q.status === "quoted" ? " · holds until " + esc(NP.when(q.valid_until).replace(/ at .*/, "")) : "") + (q.message ? '<br><span class="muted">' + esc(q.message) + "</span>" : "") + "</p>" : "") +
+      (q.response_note && q.status !== "passed" ? '<p class="muted mt-s mb-0">Their reason: ' + esc(q.response_note) + "</p>" : "") +
+      (open ? '<div class="btn-row"><button type="button" class="btn btn-primary btn-sm" data-quote-act="send">' + (q.status === "quoted" ? "Change the price" : "Send a price") + '</button>' +
+        '<button type="button" class="btn btn-ghost btn-sm" data-quote-act="pass">Can\'t take it</button></div><div data-quote-panel></div>' : "") +
+      "</article>";
+  }
+  $('[data-bind="quotes"]').addEventListener("click", function (e) {
+    var b = e.target.closest("[data-quote-act]");
+    if (!b) return;
+    var cardEl = b.closest("[data-quote-id]");
+    var q = quotes.find(function (x) { return x.id === cardEl.getAttribute("data-quote-id"); });
+    var panel = $("[data-quote-panel]", cardEl);
+    if (b.getAttribute("data-quote-act") === "pass") {
+      panel.innerHTML = '<div class="confirm-box mt-s"><div class="field"><label>Note for the customer <span class="hint">(optional)</span></label><input data-note maxlength="500" placeholder="e.g. Outside our area of work, try a roofer"></div>' +
+        '<div class="btn-row mt-s"><button type="button" class="btn btn-primary btn-sm" data-yes>Tell them</button><button type="button" class="btn btn-ghost btn-sm" data-no>Cancel</button></div></div>';
+      $("[data-no]", panel).onclick = function () { panel.innerHTML = ""; };
+      $("[data-yes]", panel).onclick = function () {
+        this.disabled = true;
+        NP.api("POST", "/api/quotes/" + q.id + "/pass", { note: $("[data-note]", panel).value }).then(function () { toast("Done. We've told " + q.customer_name.split(" ")[0] + "."); loadQuotes(); }, function (err) { toast(err.message, true); });
+      };
+      return;
+    }
+    var lengths = [30, 60, 90, 120, 180, 240, 300, 360, 480, 600, 720];
+    panel.innerHTML = '<form class="confirm-box mt-s" data-quote-form><div class="form-grid">' +
+      '<div class="field"><label>Price ($)</label><input name="price" inputmode="decimal" required value="' + (q.price_cents != null ? q.price_cents / 100 : "") + '"></div>' +
+      '<div class="field"><label>How long it takes</label><select name="duration_min">' + lengths.map(function (m) {
+        return '<option value="' + m + '"' + (m === (q.duration_min || 120) ? " selected" : "") + ">" + (m < 60 ? m + " min" : m / 60 + " hr" + (m > 60 ? "s" : "")) + "</option>";
+      }).join("") + "</select></div>" +
+      '<div class="field"><label>Price holds for</label><select name="valid_days">' + [7, 14, 30].map(function (d) { return '<option value="' + d + '"' + (d === 14 ? " selected" : "") + ">" + d + " days</option>"; }).join("") + "</select></div>" +
+      '<div class="field full"><label>What\'s included <span class="hint">(the customer sees this)</span></label><textarea name="message" maxlength="1500" placeholder="Parts and labor, what you\'ll do, anything that could change the price."></textarea></div></div>' +
+      '<p class="muted mt-s" data-quote-split></p>' +
+      '<div class="btn-row mt-s"><button class="btn btn-primary btn-sm" type="submit">Send to ' + esc(q.customer_name.split(" ")[0]) + '</button><button type="button" class="btn btn-ghost btn-sm" data-no>Cancel</button></div></form>';
+    var f = $("[data-quote-form]", panel);
+    if (q.message) f.message.value = q.message;
+    var split = function () {
+      var c = Math.round(Number(String(f.price.value).replace(/[$,\s]/g, "")) * 100);
+      $("[data-quote-split]", panel).textContent = c > 0 ? "If they book, you get " + NP.money(c - feeFor(c)) + " after the " + NP.money(feeFor(c)) + " fee, paid when the job is done." : "";
+    };
+    f.price.oninput = split; split();
+    $("[data-no]", panel).onclick = function () { panel.innerHTML = ""; };
+    f.onsubmit = function (ev) {
+      ev.preventDefault();
+      var btn = f.querySelector('[type="submit"]');
+      btn.disabled = true;
+      NP.api("POST", "/api/quotes/" + q.id + "/send", {
+        price: String(f.price.value).replace(/[$,\s]/g, ""), duration_min: Number(f.duration_min.value), valid_days: Number(f.valid_days.value), message: f.message.value,
+      }).then(function () { toast("Sent! We've emailed " + q.customer_name.split(" ")[0] + " your price."); loadQuotes(); }, function (err) { btn.disabled = false; toast(err.message, true); });
+    };
   });
 
   // --- calendar sync -------------------------------------------------------------------
@@ -769,27 +852,6 @@
     }, function (err) { toast(err.message, true); });
   });
 
-  // Resize in the browser so uploads stay small and fast (max 600px, JPEG)
-  function resizeImage(file) {
-    return new Promise(function (resolve, reject) {
-      var url = URL.createObjectURL(file);
-      var img = new Image();
-      img.onload = function () {
-        var max = 600;
-        var scale = Math.min(1, max / Math.max(img.width, img.height));
-        var w = Math.round(img.width * scale), h = Math.round(img.height * scale);
-        var c = document.createElement("canvas");
-        c.width = w; c.height = h;
-        var ctx = c.getContext("2d");
-        ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, w, h);
-        ctx.drawImage(img, 0, 0, w, h);
-        URL.revokeObjectURL(url);
-        resolve(c.toDataURL("image/jpeg", 0.85));
-      };
-      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error("We couldn't read that image. Try a JPG or PNG.")); };
-      img.src = url;
-    });
-  }
   $("#p-photo").addEventListener("change", function (e) {
     var file = e.target.files && e.target.files[0];
     e.target.value = "";
@@ -798,7 +860,7 @@
     if (s === null) return toast("Choose a provider at the top first.", true);
     if (!/^image\//.test(file.type)) return toast("Please choose an image file.", true);
     toast("Uploading…");
-    resizeImage(file).then(function (dataUrl) {
+    NP.resizeImage(file, 600).then(function (dataUrl) {
       return NP.api("POST", "/api/my/photo" + s, { dataUrl: dataUrl });
     }).then(function (res) { renderProfile(res.profile); toast("Photo updated."); if (isAdmin()) loadVendors(); }, function (err) { toast(err.message, true); });
   });

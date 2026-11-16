@@ -71,6 +71,41 @@
         <p class="tz-note">Times are San Diego time.</p>
       </div>
 
+      <!-- Quote request: for jobs a pro has to see before pricing -->
+      <form class="bk-step" data-step="quote" hidden novalidate>
+        <button type="button" class="bk-back" data-go="pros">← All pros</button>
+        <div class="pro-head" data-bind="quote-head"></div>
+        <h2 class="bk-title">Get a quote</h2>
+        <p class="muted">Tell <span data-bind="quote-pro"></span> what needs doing, and add photos if you can. You'll get a price back, usually within 2 days. Nothing is booked or charged until you accept it.</p>
+        <p class="hp"><label>Leave this empty <input name="website" tabindex="-1" autocomplete="off"></label></p>
+        <div class="form-grid">
+          <div class="field full" data-quote-svc-pick hidden><label for="q-svc">Service</label><select id="q-svc" name="service"></select></div>
+          <div class="field full"><label for="q-details">What needs doing?</label><textarea id="q-details" name="details" required minlength="10" maxlength="3000" placeholder="What's wrong or what you'd like done, how big the area is, how old the equipment is, anything you've already tried."></textarea></div>
+          <div class="field full">
+            <label for="q-photos">Photos <span class="hint">(optional, up to 3)</span></label>
+            <input id="q-photos" type="file" accept="image/*" multiple>
+            <ul class="quote-photos" data-quote-photos></ul>
+          </div>
+          <div class="field"><label for="q-name">Your name</label><input id="q-name" name="name" autocomplete="name" required maxlength="120"></div>
+          <div class="field"><label for="q-phone">Mobile phone</label><input id="q-phone" type="tel" name="phone" autocomplete="tel" required maxlength="40"></div>
+          <div class="field full"><label for="q-email">Email <span class="hint">(your quote comes here)</span></label><input id="q-email" type="email" name="email" autocomplete="email" required maxlength="254"></div>
+          <div class="field full"><label for="q-address">Street address</label><input id="q-address" name="address" autocomplete="street-address" required maxlength="240"></div>
+        </div>
+        <div class="form-foot">
+          <button class="btn btn-primary" type="submit">Send request {{icon:arrow}}</button>
+          <p>Free, and no obligation.</p>
+        </div>
+        <div class="form-status" role="alert"></div>
+      </form>
+
+      <div class="bk-step" data-step="quote-done" hidden>
+        <div class="done-badge">{{icon:check}}</div>
+        <h2 class="bk-title">Request sent</h2>
+        <p data-bind="quote-done-text"></p>
+        <p>We've emailed you a private link to your request. Your quote will appear there, and you can accept it and pick a time in one step.</p>
+        <div class="btn-row"><a class="btn btn-dark" data-bind="quote-link" href="#">See my request</a><a class="btn btn-ghost" href="/">Back to home</a></div>
+      </div>
+
       <!-- 3. Details -->
       <form class="bk-step" data-step="details" hidden novalidate>
         <button type="button" class="bk-back" data-go="time">← Change time</button>
@@ -129,6 +164,7 @@
           <li><p>Tell us where you live and see the vetted pros who work there.</p></li>
           <li><p>Pick a pro and one of their open times. You're confirmed right away, and so are they.</p></li>
           <li><p>Move or cancel any time with your private link.</p></li>
+          <li><p>Job needs a look first, like plumbing or landscaping? Ask a pro for a quote and book at that price.</p></li>
         </ol>
       </div>
       <div class="card">
