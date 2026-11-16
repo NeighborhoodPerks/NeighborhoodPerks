@@ -13,7 +13,19 @@
   var vendors = [];
   var allServices = [];
   var allAreas = [];
-  var payCfg = { payments: false, feePercent: 10 };
+  var payCfg = { payments: false, feeTiers: [{ upToCents: 100000, percent: 10 }, { upToCents: null, percent: 5 }] };
+  // Same brackets as lib/fees.cjs (the server sends them in /api/config)
+  function feeFor(cents) {
+    var fee = 0, from = 0;
+    for (var i = 0; i < payCfg.feeTiers.length; i++) {
+      var t = payCfg.feeTiers[i];
+      var to = t.upToCents == null ? cents : Math.min(cents, t.upToCents);
+      if (to > from) fee += ((to - from) * t.percent) / 100;
+      if (t.upToCents == null || cents <= t.upToCents) break;
+      from = t.upToCents;
+    }
+    return Math.round(fee);
+  }
   var DAYS = ["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
   function view(name) { $$("[data-view]").forEach(function (el) { el.hidden = el.getAttribute("data-view") !== name; }); }
@@ -81,7 +93,7 @@
     NP.config().then(function (c) {
       payCfg = c;
       $$("[data-payments]").forEach(function (el) { el.hidden = !c.payments; });
-      $('[data-bind="keep-pct"]').textContent = (100 - c.feePercent) + "%";
+      if (c.feeSummary) $('[data-bind="fee-summary"]').textContent = c.feeSummary;
       if (c.payments && me.role === "vendor") {
         NP.api("GET", "/api/my/payouts").then(function (st) { $("[data-payout-banner]").hidden = st.ready || me.vendor_status === "pending"; }, function () {});
       }
@@ -278,7 +290,6 @@
           };
         }
         if (a === "completed" && payCfg.payments && b.payment_status === "card_saved") {
-          var keep = 100 - payCfg.feePercent;
           var start = b.price_cents != null ? (b.price_cents / 100).toFixed(2) : "";
           panel.innerHTML = '<div class="confirm-box"><p><strong>Charge for this job</strong></p>' +
             '<div class="field"><label for="ch-amt">Final price ($)</label><input id="ch-amt" inputmode="decimal" value="' + start + '"></div>' +
@@ -288,7 +299,7 @@
           var split = function () {
             var v = Number(String(amt.value).replace(/[$,\s]/g, ""));
             $("[data-split]", panel).textContent = v > 0
-              ? "The customer's card is charged " + NP.money(Math.round(v * 100)) + ". " + (isAdmin() ? "The provider gets " : "You get ") + NP.money(Math.round(v * keep)) + " after the " + payCfg.feePercent + "% fee."
+              ? "The customer's card is charged " + NP.money(Math.round(v * 100)) + ". " + (isAdmin() ? "The provider gets " : "You get ") + NP.money(Math.round(v * 100) - feeFor(Math.round(v * 100))) + " after the " + NP.money(feeFor(Math.round(v * 100))) + " fee."
               : "Enter the final price for the job.";
           };
           amt.oninput = split; split();
@@ -812,7 +823,7 @@
       if (!p.enabled) return;
       $('[data-bind="pay-summary"]').innerHTML = '<dl class="facts">' + [
         ["Month", p.month], ["Jobs paid", p.paid_jobs], ["Customers paid", NP.money(p.gross)],
-        ["Neighborhood Perks earned (" + p.feePercent + "%)", NP.money(p.fees)], ["Refunded", NP.money(p.refunded)], ["Declined cards waiting", p.failed], ["Tips to providers", p.tips ? p.tips + " · " + NP.money(p.tip_cents) : "None yet"],
+        ["Neighborhood Perks earned", NP.money(p.fees)], ["Refunded", NP.money(p.refunded)], ["Declined cards waiting", p.failed], ["Tips to providers", p.tips ? p.tips + " · " + NP.money(p.tip_cents) : "None yet"],
       ].map(function (x) { return "<div><dt>" + esc(x[0]) + "</dt><dd>" + esc(x[1]) + "</dd></div>"; }).join("") + "</dl>" +
         '<p class="muted mt-s" style="font-size:.9rem">Stripe\'s card processing fee comes out of your share. Full details are in your Stripe dashboard.</p>';
     }, function () {});

@@ -95,7 +95,8 @@ const bookingIdFor = async (email) => (await db().query(`SELECT id FROM bookings
 test("config tells the browser payments are on and the fee", async () => {
   const r = await call("GET", "/api/config");
   assert.equal(r.data.payments, true);
-  assert.equal(r.data.feePercent, 10);
+  assert.equal(r.data.feeSummary, "10% of the first $1,000, 5% after that");
+  assert.deepEqual(r.data.feeTiers.map((t) => t.percent), [10, 5]);
 });
 
 test("providers without payouts set up are hidden and can't be booked", async () => {
@@ -107,7 +108,7 @@ test("providers without payouts set up are hidden and can't be booked", async ()
 
 test("payout onboarding: Stripe link, then ready once Stripe says so", async () => {
   const st = await call("GET", "/api/my/payouts", { cookie: proCookie });
-  assert.deepEqual([st.data.enabled, st.data.connected, st.data.ready, st.data.feePercent], [true, false, false, 10]);
+  assert.deepEqual([st.data.enabled, st.data.connected, st.data.ready, st.data.feeTiers.length], [true, false, false, 2]);
   const link = await call("POST", "/api/my/payouts/onboard", { cookie: proCookie, body: {} });
   assert.match(link.data.url, /connect\.stripe\.test\/setup\/acct_/);
   const [{ stripe_account_id: acct }] = await db().query(`SELECT stripe_account_id FROM vendors WHERE id = $1`, [pro]);

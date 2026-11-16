@@ -3,7 +3,7 @@
 //   node build.js
 // Each page in src/pages/*.html starts with a JSON front-matter comment:
 //   <!--{"title": "...", "description": "...", "path": "/services/"}-->
-// and may use {{icon:name}}, {{phone}}, {{phone_href}}, {{email}}, {{fee}}, {{fee_on_100}}, {{keep_on_100}}, {{fee_keep_100}} and {{scene:name}} tokens.
+// and may use {{icon:name}}, {{phone}}, {{phone_href}}, {{email}}, {{fee}} (top rate), {{fee_summary}}, {{fee_on:DOLLARS}}, {{keep_on:DOLLARS}}, {{fee_pct_on:DOLLARS}} and {{scene:name}} tokens.
 
 const fs = require("fs");
 const path = require("path");
@@ -25,12 +25,9 @@ const BIZ = {
 const icons = require("./src/icons.js");
 const scenes = require("./src/scenes.js");
 
-// The fee shown to providers comes from the same setting the payments code charges with.
-const { DEFAULT_FEE_PERCENT } = require("./lib/feeDefault.cjs");
-const FEE = (() => {
-  const p = Number(process.env.PLATFORM_FEE_PERCENT || DEFAULT_FEE_PERCENT);
-  return Number.isFinite(p) && p >= 0 && p < 100 ? p : DEFAULT_FEE_PERCENT;
-})();
+// The fee shown to providers comes from the same tiers the payments code charges with.
+const fees = require("./lib/fees.cjs");
+const FEE_TOP = fees.FEE_TIERS[0].percent;
 
 const NAV = [
   ["/services/", "Services"],
@@ -240,10 +237,16 @@ function fill(html) {
     .replace(/\{\{phone\}\}/g, BIZ.phone)
     .replace(/\{\{phone_href\}\}/g, BIZ.phone_href)
     .replace(/\{\{email\}\}/g, BIZ.email)
-    .replace(/\{\{fee\}\}/g, String(FEE))
-    .replace(/\{\{fee_on_100\}\}/g, FEE.toFixed(2))
-    .replace(/\{\{keep_on_100\}\}/g, (100 - FEE).toFixed(2))
-    .replace(/\{\{fee_keep_100\}\}/g, (100 - FEE).toFixed(2).replace(/\.00$/, ""));
+    .replace(/\{\{fee\}\}/g, String(FEE_TOP))
+    .replace(/\{\{fee_summary\}\}/g, fees.feeSummary())
+    .replace(/\{\{fee_on:(\d+)\}\}/g, (_, d) => usd(fees.feeFor(d * 100)))
+    .replace(/\{\{keep_on:(\d+)\}\}/g, (_, d) => usd(d * 100 - fees.feeFor(d * 100)))
+    .replace(/\{\{fee_pct_on:(\d+)\}\}/g, (_, d) => String(+(fees.feeFor(d * 100) / d).toFixed(1)));
+}
+
+// 123456 -> "1,234.56", 120000 -> "1,200"
+function usd(cents) {
+  return (cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/\.00$/, "");
 }
 
 // Short content hash so browsers pick up CSS/JS changes after each deploy

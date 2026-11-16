@@ -28,7 +28,7 @@
   <div class="wrap pair">
     <div class="reveal">
       <h2>Free to join. You only pay when you get paid.</h2>
-      <p class="lede">No lead fees, no monthly fee, no paying for clicks that never book. When a customer pays for a finished job, we keep {{fee}}% and the rest goes straight to your bank.</p>
+      <p class="lede">No lead fees, no monthly fee, no paying for clicks that never book. When a customer pays for a finished job, we keep {{fee_summary}}, and the rest goes straight to your bank. Above $1,000 the rate drops, so on a $15,000 install you pay about 5%, not 10%.</p>
       <ul class="dots dots-green">
         <li>$0 to sign up, and no subscription</li>
         <li>Cancelled or unpaid jobs cost you nothing</li>
@@ -37,13 +37,13 @@
       </ul>
     </div>
     <div class="receipt reveal">
-      <h3>A $100 job</h3>
-      <p class="r-sub">What you keep, start to finish</p>
+      <h3>What you keep</h3>
+      <p class="r-sub">After our fee, by job size. Card processing is on us.</p>
       <dl>
-        <div><dt>Customer pays</dt><dd>$100.00</dd></div>
-        <div><dt>Neighborhood Perks ({{fee}}%)</dt><dd>&minus;${{fee_on_100}}</dd></div>
-        <div><dt>Card processing</dt><dd>$0.00, on us</dd></div>
-        <div class="r-total"><dt>You keep</dt><dd>${{keep_on_100}}</dd></div>
+        <div><dt>$100 job, ${{fee_on:100}} fee</dt><dd>${{keep_on:100}}</dd></div>
+        <div><dt>$1,000 job, ${{fee_on:1000}} fee</dt><dd>${{keep_on:1000}}</dd></div>
+        <div><dt>$5,000 job, ${{fee_on:5000}} fee ({{fee_pct_on:5000}}%)</dt><dd>${{keep_on:5000}}</dd></div>
+        <div><dt>$15,000 job, ${{fee_on:15000}} fee ({{fee_pct_on:15000}}%)</dt><dd>${{keep_on:15000}}</dd></div>
       </dl>
       <p class="r-note">Plus any tip, in full.</p>
     </div>
