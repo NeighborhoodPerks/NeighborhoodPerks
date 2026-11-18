@@ -339,3 +339,42 @@ input.readonly { background: var(--paper) !important; color: var(--ink-soft) !im
 .quote-card .quote-details { white-space: pre-line; margin: 8px 0; }
 .quote-card .btn-row { margin-top: 10px; }
 .tab-count { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; margin-left: 4px; border-radius: 999px; background: var(--coral, #e0603a); color: #fff; font-size: .75rem; font-weight: 700; }
+
+/* --- Booking step 2: search a service ------------------------------------------------- */
+.svc-search { position: relative; margin-bottom: 14px; }
+.svc-search svg { position: absolute; left: 16px; top: 50%; width: 20px; height: 20px; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+.svc-search input { width: 100%; min-height: 54px; padding: 0 16px 0 46px; border: 1.5px solid var(--line); border-radius: var(--radius-sm); font: 600 1.05rem var(--font-body); color: var(--ink); background: #fffdf9; }
+.svc-search input:focus { outline: none; border-color: var(--green-2); box-shadow: 0 0 0 4px rgba(44, 106, 75, .14); }
+.svc-results { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.svc-result { width: 100%; display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 14px; padding: 14px 16px; border: 1.5px solid var(--line); border-radius: var(--radius-sm); background: #fff; text-align: left; font: inherit; color: var(--ink); cursor: pointer; transition: border-color .15s, background-color .15s; }
+button.svc-result:hover, button.svc-result:focus-visible { border-color: var(--green-2); background: var(--green-tint); outline: none; }
+.svc-result-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.svc-result-main strong { font-size: 1.05rem; }
+.svc-result-main > span { font-size: .9rem; color: var(--muted); }
+.svc-result-next { font-size: .88rem; font-weight: 600; color: var(--green-2); white-space: nowrap; }
+.svc-result-next.is-none { color: var(--muted); font-weight: 500; }
+.svc-result-go { font-size: 1.5rem; line-height: 1; color: var(--muted); }
+.svc-result.is-soon { grid-template-columns: 1fr auto; background: var(--paper); border-style: dashed; cursor: default; }
+.svc-none { padding: 16px; border-radius: var(--radius-sm); background: var(--paper); color: var(--ink-soft); }
+@media (max-width: 520px) {
+  .svc-result { grid-template-columns: 1fr auto; row-gap: 4px; }
+  .svc-result-next { grid-column: 1; grid-row: 2; }
+  .svc-result-go { grid-column: 2; grid-row: 1 / span 2; }
+}
+
+/* --- Booking step 3: pick a pro, then a time ------------------------------------------- */
+.bk-kicker { margin: 0 0 4px; font-size: .85rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--coral-dark); }
+.pro-choice { display: grid; gap: 8px; margin-bottom: 16px; }
+.pro-choice-label { margin: 0; font-size: .92rem; color: var(--muted); }
+.pro-opt { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1.5px solid var(--line); border-radius: var(--radius-sm); background: #fff; text-align: left; font: inherit; color: var(--ink); cursor: pointer; }
+.pro-opt:hover { border-color: var(--green-2); }
+.pro-opt[aria-checked="true"] { border-color: var(--green); background: var(--green-tint); box-shadow: inset 0 0 0 1px var(--green); }
+.pro-opt-main { display: flex; flex-direction: column; min-width: 0; }
+.pro-opt-main > span { font-size: .88rem; color: var(--muted); }
+.pro-head .pro-head-main { flex: 1; min-width: 0; }
+.pro-head .pro-head-main .pro-bio { margin-top: 6px; font-size: .93rem; -webkit-line-clamp: 2; }
+.pro-head > .btn { align-self: flex-start; flex: none; }
+.pro-head.is-compact > .avatar, .pro-head.is-compact .pro-head-main > strong, .pro-head.is-compact .pro-head-main > .muted { display: none; }
+.pro-head.is-compact .pro-head-main .pro-bio { margin-top: 0; }
+.pro-head[hidden] { display: none; }
+.bk-kicker:empty { display: none; }

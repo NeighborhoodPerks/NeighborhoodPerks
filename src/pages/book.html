@@ -12,7 +12,7 @@
     <div class="booker card reveal" id="booker" aria-live="polite">
       <ol class="steps-bar" aria-label="Booking steps">
         <li data-step="where" class="is-current">Location</li>
-        <li data-step="pros">Pro</li>
+        <li data-step="service">Service</li>
         <li data-step="time">Time</li>
         <li data-step="details">Details</li>
         <li data-step="done">Done</li>
@@ -31,32 +31,29 @@
         <div class="form-status" data-where-status role="alert"></div>
       </div>
 
-      <!-- 2. Pros -->
-      <div class="bk-step" data-step="pros" hidden>
+      <!-- 2. Service -->
+      <div class="bk-step" data-step="service" hidden>
         <button type="button" class="bk-back" data-go="where">← Change location</button>
-        <h2 class="bk-title">Pros in <span data-bind="area-name"></span></h2>
+        <h2 class="bk-title">What do you need in <span data-bind="area-name"></span>?</h2>
         <div class="community-banner" data-community-banner hidden></div>
-        <div class="svc-filter" role="radiogroup" aria-label="Service" data-filter>
-          <button type="button" data-svc="" aria-pressed="true">All</button>
-          <button type="button" data-svc="window-rescreening" aria-pressed="false">Window re-screening</button>
-          <button type="button" data-svc="pet-walking" aria-pressed="false">Pet walking</button>
-          <button type="button" data-svc="pet-sitting" aria-pressed="false">Pet sitting</button>
+        <div class="svc-search">
+          <label for="s-q" class="sr-only">Search services</label>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="m20 20-3.6-3.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <input id="s-q" type="search" autocomplete="off" placeholder="Search, e.g. dog walking" aria-controls="s-results">
         </div>
-        <div class="pro-list" data-pros><p class="muted">Finding pros…</p></div>
-        <p class="bk-alt">Need something else? <a href="#request" data-show-request>Send us a request</a> and we'll find a pro.</p>
+        <ul class="svc-results" id="s-results" data-svc-results aria-live="polite"><li class="muted">Finding services…</li></ul>
+        <p class="bk-alt">Don't see it? <a href="#request" data-show-request>Send us a request</a> and we'll find a pro.</p>
       </div>
 
       <!-- 2. Date + time -->
       <div class="bk-step" data-step="time" hidden>
-        <button type="button" class="bk-back" data-go="pros">← All pros</button>
+        <button type="button" class="bk-back" data-go="service">← Change service</button>
         <a class="bk-back" href="/community/" data-group-back hidden>← Back to your community</a>
+        <p class="bk-kicker" data-bind="svc-kicker"></p>
+        <h2 class="bk-title">When works for you?</h2>
+        <div class="pro-choice" data-pro-choice role="radiogroup" aria-label="Choose a pro" hidden></div>
         <div class="pro-head" data-bind="pro-head"></div>
         <div data-group-info hidden style="margin-bottom:18px"></div>
-        <div class="field svc-pick" data-svc-pick hidden>
-          <label for="t-svc">Service</label>
-          <select id="t-svc"></select>
-        </div>
-        <h2 class="bk-title">When works for you?</h2>
         <div class="cal" data-cal>
           <div class="cal-head">
             <button type="button" class="cal-nav" data-cal-prev aria-label="Previous month">‹</button>
@@ -73,7 +70,7 @@
 
       <!-- Quote request: for jobs a pro has to see before pricing -->
       <form class="bk-step" data-step="quote" hidden novalidate>
-        <button type="button" class="bk-back" data-go="pros">← All pros</button>
+        <button type="button" class="bk-back" data-go="time">← Back</button>
         <div class="pro-head" data-bind="quote-head"></div>
         <h2 class="bk-title">Get a quote</h2>
         <p class="muted">Tell <span data-bind="quote-pro"></span> what needs doing, and add photos if you can. You'll get a price back, usually within 2 days. Nothing is booked or charged until you accept it.</p>
@@ -161,8 +158,8 @@
       <div class="card">
         <h3>How it works</h3>
         <ol class="route route-v">
-          <li><p>Tell us where you live and see the vetted pros who work there.</p></li>
-          <li><p>Pick a pro and one of their open times. You're confirmed right away, and so are they.</p></li>
+          <li><p>Tell us where you live, then search for the service you need.</p></li>
+          <li><p>Pick an open time with a vetted local pro. You're confirmed right away, and so are they.</p></li>
           <li><p>Move or cancel any time with your private link.</p></li>
           <li><p>Job needs a look first, like plumbing or landscaping? Ask a pro for a quote and book at that price.</p></li>
         </ol>

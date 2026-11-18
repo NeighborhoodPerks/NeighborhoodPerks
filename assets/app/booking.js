@@ -1,4 +1,4 @@
-// Customer booking on /book/: location → pros in that area → a pro's calendar → details → confirmed.
+// Customer booking on /book/: location → search a service → pick a time (with a pro who offers it) → details → confirmed.
 (function () {
   var NP = window.NP;
   var root = document.getElementById("booker");
@@ -10,15 +10,17 @@
   var SERVICE_ALIASES = { "window re-screening": "window-rescreening", "pet walking": "pet-walking", "pet sitting": "pet-sitting" };
   var state = {
     area: null,          // { slug, name }
-    filter: SERVICE_ALIASES[(params.get("service") || "").toLowerCase()] || params.get("service") || "",
+    want: SERVICE_ALIASES[(params.get("service") || "").toLowerCase()] || params.get("service") || "", // ?service= from a link
     pros: [],
+    slug: null,          // the service the customer chose
+    allServices: [],     // every service we list, so a search can say "not here yet" instead of nothing
     pro: null,
     service: null,       // { slug, name, price_cents }
     start: null,
     community: null,     // { code, name, area, areaName } once a resident has entered their HOA's code
     groupDay: null,      // booking a slot on a community group day
   };
-  var steps = ["where", "pros", "time", "details", "done"];
+  var steps = ["where", "service", "time", "details", "done"];
   var requestBox = document.querySelector("[data-request]");
 
   function go(step) {
@@ -85,7 +87,7 @@
     if (!box) return;
     if (!residentHere()) { box.hidden = true; return; }
     box.hidden = false;
-    box.innerHTML = "<span>Resident pricing for <strong>" + esc(state.community.name) + "</strong> is on. Pros marked below take it off automatically.</span>" +
+    box.innerHTML = "<span>Resident pricing for <strong>" + esc(state.community.name) + "</strong> is on. Pros in the program take it off automatically.</span>" +
       '<a class="linklike" href="/community/">Group days</a>';
   }
 
@@ -145,117 +147,171 @@
   function chooseArea(area) {
     state.area = area;
     try { localStorage.setItem("np-area", area.slug); } catch (e) {}
-    $('[data-bind="area-name"]').textContent = area.name;
+    root.querySelectorAll('[data-bind="area-name"]').forEach(function (el) { el.textContent = area.name; });
     root.querySelectorAll("[data-area]").forEach(function (c) { c.hidden = false; });
-    go("pros");
+    go("service");
     loadPros();
   }
 
-  // --- 2. pros ------------------------------------------------------------------------
-  var prosBox = $("[data-pros]");
-  function setFilter(slug) {
-    state.filter = slug;
-    root.querySelectorAll("[data-filter] [data-svc]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-svc") === slug)); });
-  }
-  $("[data-filter]").addEventListener("click", function (e) {
-    var b = e.target.closest("[data-svc]");
-    if (!b) return;
-    setFilter(b.getAttribute("data-svc"));
-    renderPros();
-  });
+  // --- 2. service: search what the pros here offer ------------------------------------------
+  var resultsBox = $("[data-svc-results]");
+  var qInput = $("#s-q");
+  NP.api("GET", "/api/services").then(function (res) { state.allServices = res.services || []; if (state.pros.length || state.area) renderServices(); }, function () {});
 
   function loadPros() {
-    prosBox.innerHTML = '<p class="muted">Finding pros…</p>';
-    setFilter(state.filter);
+    resultsBox.innerHTML = '<li class="muted">Finding services…</li>';
     NP.api("GET", "/api/pros?area=" + encodeURIComponent(state.area.slug)).then(function (res) {
       state.pros = res.pros;
-      renderChips();
-      renderPros();
+      communityBanner();
+      var want = state.want;
+      state.want = "";
+      if (want && offered().some(function (s) { return s.slug === want; })) return chooseService(want);
+      if (want) qInput.value = (state.allServices.find(function (s) { return s.slug === want; }) || { name: want.replace(/-/g, " ") }).name;
+      renderServices();
+      if (window.matchMedia("(min-width: 760px)").matches) qInput.focus({ preventScroll: true });
     }, function (err) {
       if (err.offline) { go("where"); return offline(); }
-      prosBox.innerHTML = '<p class="form-status err" style="display:block">' + esc(err.message) + "</p>";
+      resultsBox.innerHTML = '<li class="form-status err" style="display:block">' + esc(err.message) + "</li>";
     });
   }
 
-  // Filter buttons = the services the pros here actually offer (a new trade shows up once a pro offers it)
-  function renderChips() {
-    var seen = {}, list = [];
+  /** Services bookable in this area, one row each, rolled up across the pros who offer them. */
+  function offered() {
+    var map = {}, list = [];
     state.pros.forEach(function (p) {
-      p.services.forEach(function (s) { if (!seen[s.slug]) { seen[s.slug] = true; list.push(s); } });
+      p.services.forEach(function (s) {
+        var row = map[s.slug];
+        if (!row) { row = map[s.slug] = { slug: s.slug, name: s.name, pros: 0, price: null, next: null, quotes: false, discount: false }; list.push(row); }
+        row.pros++;
+        var price = residentPrice(p, s.price_cents);
+        if (price != null && (row.price == null || price < row.price)) row.price = price;
+        if (s.next_open && (!row.next || s.next_open < row.next)) row.next = s.next_open;
+        if (s.quotes) row.quotes = true;
+        if (p.hoa && residentHere()) row.discount = true;
+      });
     });
-    if (state.filter && !seen[state.filter]) list.push({ slug: state.filter, name: state.filter.replace(/-/g, " ") });
-    $("[data-filter]").innerHTML = '<button type="button" data-svc="" aria-pressed="false">All</button>' + list.map(function (s) {
-      return '<button type="button" data-svc="' + esc(s.slug) + '" aria-pressed="false">' + esc(s.name) + "</button>";
-    }).join("");
-    $("[data-filter]").hidden = list.length < 2 && !state.filter;
-    setFilter(state.filter);
+    return list;
+  }
+  var norm = function (t) { return String(t || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(); };
+  var SYNONYMS = { dog: "pet walking pet sitting", cat: "pet sitting", maid: "cleaning", clean: "cleaning", yard: "landscaping", lawn: "landscaping", pool: "pool", car: "auto detailing mechanic", pipe: "plumbing", leak: "plumbing" };
+  function matches(name, q) {
+    if (!q) return true;
+    var n = " " + norm(name);
+    var has = function (w) { return n.indexOf(" " + w) !== -1; }; // word starts only: "pet" must not hit "carpet"
+    return q.split(" ").every(function (w) {
+      if (has(w)) return true;
+      return Object.keys(SYNONYMS).some(function (k) { return k.indexOf(w) === 0 && SYNONYMS[k].split(" ").filter(function (x) { return x.length > 2; }).some(has); });
+    });
   }
 
-  function renderPros() {
-    communityBanner();
-    var f = state.filter;
-    var list = state.pros.filter(function (p) { return !f || p.services.some(function (s) { return s.slug === f; }); });
-    if (!list.length) {
-      var chip = document.querySelector('[data-filter] [data-svc="' + f + '"]');
-      var what = f ? (chip ? chip.textContent : f.replace(/-/g, " ")).toLowerCase() : "home services";
-      prosBox.innerHTML = '<div class="empty-pros"><p><strong>No pros for ' + esc(what) + " in " + esc(state.area.name) + " yet.</strong></p>" +
-        '<p class="muted">We\'re adding pros all the time. <a href="#request" data-show-request>Send us a request</a> and we\'ll find someone for you.</p></div>';
-      return;
+  function renderServices() {
+    if (!state.area) return;
+    var q = norm(qInput.value);
+    var here = offered();
+    var hits = here.filter(function (s) { return matches(s.name, q); });
+    var hereSlugs = here.map(function (s) { return s.slug; });
+    var elsewhere = q ? state.allServices.filter(function (s) { return hereSlugs.indexOf(s.slug) === -1 && matches(s.name, q); }).slice(0, 4) : [];
+    var html = hits.map(function (s) {
+      var meta = [s.pros + (s.pros === 1 ? " pro" : " pros")];
+      if (s.price != null) meta.push("from " + NP.money(s.price));
+      else if (s.quotes) meta.push("priced by quote");
+      return '<li><button type="button" class="svc-result" data-pick-svc="' + esc(s.slug) + '">' +
+        '<span class="svc-result-main"><strong>' + esc(s.name) + "</strong><span>" + esc(meta.join(" · ")) + (s.discount ? ' · <span class="price-tag">resident price</span>' : "") + "</span></span>" +
+        '<span class="svc-result-next' + (s.next ? "" : " is-none") + '">' + (s.next ? "Next: " + esc(shortWhen(s.next)) : s.quotes ? "Get a quote" : "Fully booked") + "</span>" +
+        '<span class="svc-result-go" aria-hidden="true">›</span></button></li>';
+    }).join("");
+    html += elsewhere.map(function (s) {
+      return '<li><div class="svc-result is-soon"><span class="svc-result-main"><strong>' + esc(s.name) + "</strong><span>No pros in " + esc(state.area.name) + ' yet</span></span>' +
+        '<button type="button" class="linklike" data-request-svc="' + esc(s.name) + '">Request it</button></div></li>';
+    }).join("");
+    if (!html) {
+      html = here.length
+        ? '<li class="svc-none"><strong>No match for “' + esc(qInput.value.trim()) + '”.</strong> <button type="button" class="linklike" data-request-svc="' + esc(qInput.value.trim()) + '">Ask us to find a pro</button></li>'
+        : '<li class="svc-none"><strong>No pros are booking in ' + esc(state.area.name) + ' yet.</strong> <button type="button" class="linklike" data-request-svc="">Send us a request</button> and we\'ll find someone.</li>';
     }
-    prosBox.innerHTML = list.map(function (p) {
-      var svcs = p.services.filter(function (s) { return !f || s.slug === f; });
-      var next = f ? (svcs[0] && svcs[0].next_open) : p.next_open;
-      return '<article class="pro-card">' +
-        '<div class="pro-top">' + avatar(p, 64) +
-        '<div><h3>' + esc(p.business_name || p.name) + "</h3>" + (p.business_name ? '<p class="muted pro-person">' + esc(p.name) + "</p>" : "") + "</div></div>" +
-        (p.bio ? '<p class="pro-bio">' + esc(p.bio) + "</p>" +
-          (p.bio.length > 160 || p.bio.split("\n").length > 3 ? '<button type="button" class="linklike pro-more" data-more>Read more</button>' : "") : "") +
-        '<ul class="pro-svcs">' + svcs.map(function (s) {
-          return "<li><span>" + esc(s.name) + "</span>" + (s.price_cents != null ? "<strong>from " + priceHtml(p, s.price_cents) + "</strong>" : "") + "</li>";
-        }).join("") + "</ul>" +
-        (p.hoa && residentHere() ? '<p class="mb-0"><span class="price-tag">' + p.hoa.resident_pct + "% resident discount</span></p>" : "") +
-        '<div class="pro-foot"><span class="pro-next' + (next ? "" : " is-none") + '">' + (next ? "Next opening: <strong>" + esc(shortWhen(next)) + "</strong>" : "No openings in the next 3 weeks") + "</span>" +
-        '<span class="btn-row">' + (quoteSvcs(p, f).length ? '<button type="button" class="btn ' + (next ? "btn-ghost" : "btn-primary") + ' btn-sm" data-quote="' + esc(p.id) + '">Get a quote</button>' : "") +
-        '<button type="button" class="btn btn-primary btn-sm" data-pro="' + esc(p.id) + '"' + (next ? "" : " disabled") + ">See times</button></span></div>" +
-        "</article>";
+    resultsBox.innerHTML = html;
+  }
+  qInput.addEventListener("input", renderServices);
+  qInput.addEventListener("keydown", function (e) {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    var first = resultsBox.querySelector("[data-pick-svc]");
+    if (first) first.click();
+  });
+  resultsBox.addEventListener("click", function (e) {
+    var r = e.target.closest("[data-request-svc]");
+    if (r) {
+      var field = document.getElementById("b-service");
+      if (field && r.getAttribute("data-request-svc")) field.value = r.getAttribute("data-request-svc");
+      return showRequest("Tell us what you need in " + state.area.name + " and we'll find a pro for it.");
+    }
+    var b = e.target.closest("[data-pick-svc]");
+    if (b) chooseService(b.getAttribute("data-pick-svc"));
+  });
+
+  // --- 3. time: the pros who offer it, and the chosen pro's calendar --------------------------
+  function prosFor(slug) {
+    return state.pros.filter(function (p) { return p.services.some(function (s) { return s.slug === slug; }); }).sort(function (a, b) {
+      var na = svcOf(a, slug).next_open || "9999", nb = svcOf(b, slug).next_open || "9999";
+      return na.localeCompare(nb) || a.name.localeCompare(b.name);
+    });
+  }
+  function svcOf(p, slug) { return p.services.find(function (s) { return s.slug === slug; }); }
+
+  function chooseService(slug) {
+    state.slug = slug;
+    var list = prosFor(slug);
+    if (!list.length) return;
+    $('[data-bind="svc-kicker"]').textContent = svcOf(list[0], slug).name + " · " + state.area.name;
+    renderProChoice(list);
+    go("time");
+    choosePro(list.find(function (p) { return svcOf(p, slug).next_open; }) || list[0]);
+  }
+
+  var choiceBox = $("[data-pro-choice]");
+  function renderProChoice(list) {
+    list = list || prosFor(state.slug);
+    choiceBox.hidden = list.length < 2;
+    if (list.length < 2) { choiceBox.innerHTML = ""; return; }
+    choiceBox.innerHTML = '<p class="pro-choice-label">' + list.length + " pros offer this here. Pick one:</p>" + list.map(function (p) {
+      var s = svcOf(p, state.slug);
+      var on = state.pro && state.pro.id === p.id;
+      return '<button type="button" role="radio" aria-checked="' + on + '" class="pro-opt" data-pro="' + esc(p.id) + '">' + avatar(p, 40) +
+        '<span class="pro-opt-main"><strong>' + esc(p.business_name || p.name) + "</strong>" +
+        "<span>" + (s.price_cents != null ? "from " + priceHtml(p, s.price_cents) + " · " : "") + (s.next_open ? "next " + esc(shortWhen(s.next_open)) : "no openings soon") + "</span></span></button>";
     }).join("");
   }
-  prosBox.addEventListener("click", function (e) {
+  choiceBox.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-pro]");
+    if (b) choosePro(state.pros.find(function (p) { return p.id === b.getAttribute("data-pro"); }));
+  });
+
+  function choosePro(p) {
+    state.pro = p;
+    state.start = null;
+    state.service = svcOf(p, state.slug);
+    renderProChoice();
+    var quote = state.service.quotes;
+    $('[data-bind="pro-head"]').innerHTML = avatar(p, 52) + '<div class="pro-head-main"><strong>' + esc(p.business_name || p.name) + "</strong>" +
+      '<span class="muted">' + esc(p.business_name ? p.name + " · " : "") + (state.service.price_cents != null ? "from " + priceHtml(p, state.service.price_cents) : "Priced by quote") +
+      (p.hoa && residentHere() ? " · " + p.hoa.resident_pct + "% resident discount" : "") + "</span>" +
+      (p.bio ? '<p class="pro-bio">' + esc(p.bio) + "</p>" + (p.bio.length > 160 || p.bio.split("\n").length > 3 ? '<button type="button" class="linklike pro-more" data-more>Read more</button>' : "") : "") +
+      "</div>" + (quote ? '<button type="button" class="btn btn-ghost btn-sm" data-quote>Get a quote</button>' : "");
+    // With the picker showing, the header only adds the pro's bio (and quote button), not their name again
+    var head = $('[data-bind="pro-head"]');
+    var compact = !choiceBox.hidden;
+    head.classList.toggle("is-compact", compact);
+    head.hidden = compact && !p.bio && !quote;
+    loadCalendar();
+  }
+  $('[data-bind="pro-head"]').addEventListener("click", function (e) {
     var more = e.target.closest("[data-more]");
     if (more) {
       var open = more.previousElementSibling.classList.toggle("is-open");
       more.textContent = open ? "Show less" : "Read more";
       return;
     }
-    var qb = e.target.closest("[data-quote]");
-    if (qb) return openQuote(state.pros.find(function (p) { return p.id === qb.getAttribute("data-quote"); }));
-    var b = e.target.closest("[data-pro]");
-    if (!b) return;
-    choosePro(state.pros.find(function (p) { return p.id === b.getAttribute("data-pro"); }));
-  });
-
-  // --- 3. a pro's calendar ----------------------------------------------------------------
-  var svcSelect = $("#t-svc");
-  function choosePro(p) {
-    state.pro = p;
-    state.start = null;
-    var offered = p.services.filter(function (s) { return s.next_open; });
-    if (!offered.length) offered = p.services;
-    var pick = offered.find(function (s) { return s.slug === state.filter; }) || offered[0];
-    state.service = pick;
-    $('[data-bind="pro-head"]').innerHTML = avatar(p, 52) + "<div><strong>" + esc(p.business_name || p.name) + "</strong>" +
-      '<span class="muted">' + esc(p.business_name ? p.name + " · " : "") + esc(state.area.name) + "</span></div>";
-    svcSelect.innerHTML = p.services.map(function (s) {
-      return '<option value="' + esc(s.slug) + '"' + (s.slug === pick.slug ? " selected" : "") + ">" + esc(s.name) + (s.price_cents != null ? " · from " + NP.money(residentPrice(p, s.price_cents)) : "") + "</option>";
-    }).join("");
-    $("[data-svc-pick]").hidden = p.services.length < 2;
-    go("time");
-    loadCalendar();
-  }
-  svcSelect.addEventListener("change", function () {
-    state.service = state.pro.services.find(function (s) { return s.slug === svcSelect.value; });
-    state.start = null;
-    loadCalendar();
+    if (e.target.closest("[data-quote]")) openQuote(state.pro);
   });
 
   var slotsBox = $("[data-slots]");
@@ -293,10 +349,15 @@
         };
         return step();
       }
-      slotsBox.innerHTML = '<p class="muted">' + esc(state.pro.first_name) + ' has no open times coming up. <button type="button" class="linklike" data-go-pros>See other pros</button>.</p>';
+      var others = prosFor(state.slug).length > 1;
+      slotsBox.innerHTML = '<p class="muted">' + esc(state.pro.first_name) + " has no open times coming up." +
+        (state.service.quotes ? ' <button type="button" class="linklike" data-quote-here>Ask for a quote instead</button>.' : others ? " Try another pro above." : ' <button type="button" class="linklike" data-go-service>Pick another service</button>.') + "</p>";
     });
   }
-  slotsBox.addEventListener("click", function (e) { if (e.target.closest("[data-go-pros]")) go("pros"); });
+  slotsBox.addEventListener("click", function (e) {
+    if (e.target.closest("[data-go-service]")) go("service");
+    if (e.target.closest("[data-quote-here]")) openQuote(state.pro);
+  });
 
   // House cleaning is priced by home size, so the pro needs it to confirm the price
   var SIZED_SERVICES = ["house-cleaning", "recurring-cleaning", "deep-cleaning"];
@@ -372,7 +433,7 @@
       if (p.community_code && !state.community) {
         state.community = { code: p.community_code, name: p.community_name, area: p.community_area, areaName: p.community_area_name };
         rememberCommunity(state.community);
-        if (state.area && state.pros.length) renderPros();
+        if (state.area && state.pros.length) { communityBanner(); renderServices(); }
       }
     }, function () {});
   }
@@ -447,8 +508,8 @@
   });
 
   // --- quote request: the pro sees the job first, then sends a price ------------------------
-  function quoteSvcs(p, filter) {
-    return p.services.filter(function (s) { return s.quotes && (!filter || s.slug === filter); });
+  function quoteSvcs(p, slug) {
+    return p.services.filter(function (s) { return s.quotes && (!slug || s.slug === slug); });
   }
   var qForm = root.querySelector('form[data-step="quote"]');
   var qStatus = qForm.querySelector(".form-status");
@@ -459,7 +520,7 @@
   }
   function openQuote(p) {
     state.pro = p;
-    var svcs = quoteSvcs(p, state.filter);
+    var svcs = quoteSvcs(p, state.slug);
     if (!svcs.length) svcs = quoteSvcs(p);
     $('[data-bind="quote-head"]').innerHTML = avatar(p, 52) + "<div><strong>" + esc(p.business_name || p.name) + "</strong>" +
       '<span class="muted">' + esc(p.business_name ? p.name + " · " : "") + esc(state.area.name) + "</span></div>";
@@ -563,7 +624,7 @@
         return;
       }
       root.classList.add("is-group-day");
-      $('[data-go="pros"]').hidden = true;
+      $('[data-step="time"] [data-go="service"]').hidden = true;
       $("[data-group-back]").hidden = false;
       $("[data-cal]").hidden = true;
       $(".tz-note").textContent = "Times are San Diego time. No travel buffer on group days: the next home is next door.";
